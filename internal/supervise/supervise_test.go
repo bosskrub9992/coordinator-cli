@@ -227,3 +227,14 @@ func TestPrepareTicketFolderInsideLaunch(t *testing.T) {
 		t.Fatalf("prompt:\n%s", p)
 	}
 }
+
+func TestEnvFileScript(t *testing.T) {
+	got := EnvFileScript(`C:\Users\me\AppData\Local\Temp\coord-smoke.x\bin`)
+	want := "export PATH=/c/Users/me/AppData/Local/Temp/coord-smoke.x/bin:\"$PATH\"\n"
+	if got != want {
+		t.Fatalf("got %q want %q", got, want)
+	}
+	if got := EnvFileScript("/opt/coord/bin"); got != "export PATH=/opt/coord/bin:\"$PATH\"\n" {
+		t.Fatalf("got %q", got)
+	}
+}

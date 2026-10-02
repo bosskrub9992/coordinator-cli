@@ -205,6 +205,9 @@ func ParseRemote(remote string) (CodeHost, error) {
 			host = h
 		}
 		path = p
+		if host == "" && strings.HasPrefix(remote, "file://") {
+			host = "localhost"
+		}
 	default:
 		m := scpLike.FindStringSubmatch(remote)
 		if m == nil {

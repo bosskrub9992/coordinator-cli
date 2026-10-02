@@ -3,9 +3,12 @@ package supervise
 import (
 	"encoding/json"
 	"fmt"
+	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/bosskrub9992/coordinator-cli/internal/config"
+	"github.com/bosskrub9992/coordinator-cli/internal/envlist"
 	"github.com/bosskrub9992/coordinator-cli/internal/home"
 	"github.com/bosskrub9992/coordinator-cli/internal/instructions"
 	"github.com/bosskrub9992/coordinator-cli/internal/role"
@@ -102,7 +105,28 @@ func WriteFiles(s *task.Store, t task.Task, w task.WorkerRecord, coordBin string
 	if err := home.WriteFileAtomic(s.SystemPromptPath(t.ID), []byte(SystemPrompt(t, w)), 0o644); err != nil {
 		return err
 	}
-	return home.WriteJSONAtomic(s.SettingsPath(t.ID), Settings(coordBin, t.ID))
+	if err := home.WriteJSONAtomic(s.SettingsPath(t.ID), Settings(coordBin, t.ID)); err != nil {
+		return err
+	}
+	if runtime.GOOS == "windows" && coordBin != "" {
+		return home.WriteFileAtomic(s.EnvFilePath(t.ID), []byte(EnvFileScript(filepath.Dir(coordBin))), 0o644)
+	}
+	return nil
+}
+
+func EnvFileScript(binDir string) string {
+	dir := filepath.ToSlash(binDir)
+	if len(dir) >= 2 && dir[1] == ':' {
+		dir = "/" + strings.ToLower(dir[:1]) + dir[2:]
+	}
+	return "export PATH=" + shellquote.Join(dir) + ":\"$PATH\"\n"
+}
+
+func WorkerEnvWithFile(env []string, s *task.Store, id task.ID) []string {
+	if runtime.GOOS != "windows" {
+		return env
+	}
+	return envlist.Set(env, "CLAUDE_ENV_FILE", s.EnvFilePath(id))
 }
 
 func LoadedInstructions(s *task.Store, id task.ID) []string {

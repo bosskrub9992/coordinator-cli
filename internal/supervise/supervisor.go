@@ -185,7 +185,7 @@ func (s *Supervisor) Run(ctx context.Context) error {
 		SystemPromptFile: s.Store.SystemPromptPath(t.ID),
 		PermissionMode:   PermissionMode,
 		SettingsFile:     s.Store.SettingsPath(t.ID),
-		Env:              WorkerEnv(s.Env, s.HomeRoot, string(t.ID), s.CoordBin),
+		Env:              WorkerEnvWithFile(WorkerEnv(s.Env, s.HomeRoot, string(t.ID), s.CoordBin), s.Store, t.ID),
 		LogPath:          s.Store.WorkerLogPath(t.ID),
 	}
 	var w harness.Worker
