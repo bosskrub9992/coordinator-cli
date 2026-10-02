@@ -23,15 +23,21 @@ type fakeWorker struct {
 	mu     sync.Mutex
 	steers []harness.Steer
 	ints   int
+	stops  int
 	once   sync.Once
 }
 
 func (w *fakeWorker) SessionID() string                  { return "sid" }
 func (w *fakeWorker) PID() int                           { return os.Getpid() }
 func (w *fakeWorker) Events() <-chan harness.WorkerEvent { return w.events }
-func (w *fakeWorker) Stop(context.Context) error         { return nil }
-func (w *fakeWorker) Kill() error                        { w.exit(); return nil }
-func (w *fakeWorker) Wait() (harness.WorkerExit, error)  { return harness.WorkerExit{}, nil }
+func (w *fakeWorker) Stop(context.Context) error {
+	w.mu.Lock()
+	w.stops++
+	w.mu.Unlock()
+	return nil
+}
+func (w *fakeWorker) Kill() error                       { w.exit(); return nil }
+func (w *fakeWorker) Wait() (harness.WorkerExit, error) { return harness.WorkerExit{}, nil }
 func (w *fakeWorker) Interrupt(context.Context) error {
 	w.mu.Lock()
 	w.ints++
@@ -49,6 +55,12 @@ func (w *fakeWorker) sent() []harness.Steer {
 	w.mu.Lock()
 	defer w.mu.Unlock()
 	return append([]harness.Steer(nil), w.steers...)
+}
+
+func (w *fakeWorker) stopped() int {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return w.stops
 }
 
 func (w *fakeWorker) exit() {
@@ -388,4 +400,41 @@ func TestUsageLimitBlocksOnce(t *testing.T) {
 	if got, _ := s.Get(tk.ID); got.State != task.Blocked {
 		t.Fatalf("state after exit %s", got.State)
 	}
+}
+
+func TestSupervisorClosesStdinWhenReportSettlesToWatcherAsk(t *testing.T) {
+	s, tk, r, sv := spawned(t, true)
+	Post(s, tk.ID, InboxSteer, "follow up")
+	done := make(chan error, 1)
+	go func() { done <- sv.Run(context.Background()) }()
+	w := r.worker(t, 0)
+	eventually(t, "steer sent", func() bool { return len(w.sent()) == 1 })
+	s.SetQuestion(tk.ID, task.QuestionFromWatcher, "MR checks failed")
+	s.Transition(tk.ID, task.NeedsDecision, "MR checks failed")
+	Post(s, tk.ID, InboxReported, "done")
+	eventually(t, "stdin closed", func() bool { return w.stopped() == 1 })
+	w.exit()
+	<-done
+	got, _ := s.Get(tk.ID)
+	if got.State != task.NeedsDecision || got.QuestionFrom != task.QuestionFromWatcher {
+		t.Fatalf("got %s from %q", got.State, got.QuestionFrom)
+	}
+}
+
+func TestSupervisorKeepsStdinOpenOnWorkerNeedsDecision(t *testing.T) {
+	s, tk, r, sv := spawned(t, true)
+	Post(s, tk.ID, InboxSteer, "follow up")
+	done := make(chan error, 1)
+	go func() { done <- sv.Run(context.Background()) }()
+	w := r.worker(t, 0)
+	eventually(t, "steer sent", func() bool { return len(w.sent()) == 1 })
+	s.SetQuestion(tk.ID, task.QuestionFromWorker, "which approach")
+	s.Transition(tk.ID, task.NeedsDecision, "which approach")
+	Post(s, tk.ID, InboxReported, "asked")
+	time.Sleep(200 * time.Millisecond)
+	if n := w.stopped(); n != 0 {
+		t.Fatalf("stdin closed %d times for a Worker-raised needs-decision", n)
+	}
+	w.exit()
+	<-done
 }
