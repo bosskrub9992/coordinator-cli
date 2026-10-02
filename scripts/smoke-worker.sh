@@ -1,18 +1,24 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+case "$(uname -s)" in
+  MINGW*|MSYS*|CYGWIN*) WIN=1; EXE=.exe; ORIGIN_URL=file:///; upath() { cygpath -u "$1"; }; wpath() { cygpath -m "$1"; };;
+  *) WIN=0; EXE=; ORIGIN_URL=file://localhost; upath() { printf '%s\n' "$1"; }; wpath() { printf '%s\n' "$1"; };;
+esac
+if python3 -c 'pass' >/dev/null 2>&1; then PY=python3; else PY=python; fi
+
 REPO_DIR=$(cd "$(dirname "$0")/.." && pwd)
 MODEL=${SMOKE_MODEL:-claude-sonnet-5-5}
 EFFORT=${SMOKE_EFFORT:-low}
 TIMEOUT=${SMOKE_TIMEOUT:-600}
 
-ROOT=$(cd "$(mktemp -d "${TMPDIR:-/tmp}/coord-smoke.XXXXXX")" && pwd -P)
+ROOT=$(wpath "$(cd "$(mktemp -d "${TMPDIR:-/tmp}/coord-smoke.XXXXXX")" && pwd -P)")
 echo "smoke root: $ROOT"
 
 mkdir -p "$ROOT/bin" "$ROOT/home" "$ROOT/launch" "$ROOT/nohooks"
-(cd "$REPO_DIR" && go build -o "$ROOT/bin/coord" ./cmd/coord)
+(cd "$REPO_DIR" && go build -o "$ROOT/bin/coord$EXE" ./cmd/coord)
 
-export PATH="$ROOT/bin:$PATH"
+export PATH="$(upath "$ROOT/bin"):$PATH"
 export COORD_HOME="$ROOT/home"
 export TREEHOUSE_ROOT="$ROOT/pool"
 unset COORD_TOKEN COORD_ROLE COORD_TASK
@@ -28,7 +34,7 @@ printf 'Smoke repo rule: keep commits to one file.\n' > "$MAIN/AGENTS.md"
 printf 'max_trees = 2\n' > "$MAIN/treehouse.toml"
 git -C "$MAIN" add .
 git -C "$MAIN" commit -q -m init
-git -C "$MAIN" remote add origin "file://localhost$ORIGIN"
+git -C "$MAIN" remote add origin "$ORIGIN_URL$ORIGIN"
 git -C "$MAIN" push -q origin main
 MAIN_HEAD=$(git -C "$MAIN" rev-parse HEAD)
 
@@ -52,11 +58,18 @@ echo "task: $ID"
 coord spawn "$ID"
 
 TASK_DIR="$COORD_HOME/tasks/$ID"
-state() { python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["state"])' "$TASK_DIR/state.json"; }
+state() { $PY -c 'import json,sys; print(json.load(open(sys.argv[1]))["state"])' "$TASK_DIR/state.json"; }
+pid_alive() {
+  if [ "$WIN" = 1 ]; then
+    tasklist //FI "PID eq $1" //NH 2>/dev/null | grep -q "[0-9]"
+  else
+    kill -0 "$1" 2>/dev/null
+  fi
+}
 supervisor_live() {
   local pid
-  pid=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("supervisor_pid", 0))' "$TASK_DIR/worker.json" 2>/dev/null || echo 0)
-  if [ "$pid" != 0 ] && kill -0 "$pid" 2>/dev/null; then echo yes; else echo no; fi
+  pid=$($PY -c 'import json,sys; print(json.load(open(sys.argv[1])).get("supervisor_pid", 0))' "$TASK_DIR/worker.json" 2>/dev/null || echo 0)
+  if [ "$pid" != 0 ] && pid_alive "$pid"; then echo yes; else echo no; fi
 }
 
 deadline=$(( $(date +%s) + TIMEOUT ))
@@ -76,10 +89,10 @@ coord watch "$ID" | tail -40
 echo
 echo "== coord show $ID"
 coord show "$ID"
-REFUSED=$(python3 -c 'import subprocess, sys; r = subprocess.run(["coord", "stop", sys.argv[1]], stdin=subprocess.DEVNULL, capture_output=True, text=True, start_new_session=True); print(r.returncode, r.stderr)' "$ID")
+REFUSED=$($PY -c 'import subprocess, sys; kw = {"creationflags": subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP} if sys.platform == "win32" else {"start_new_session": True}; r = subprocess.run(["coord", "stop", sys.argv[1]], stdin=subprocess.DEVNULL, capture_output=True, text=True, **kw); print(r.returncode, r.stderr)' "$ID")
 echo
 echo "== events"
-python3 - "$TASK_DIR/events.jsonl" <<'EOF'
+$PY - "$TASK_DIR/events.jsonl" <<'EOF'
 import json, sys
 for line in open(sys.argv[1]):
     e = json.loads(line)
@@ -100,8 +113,12 @@ check "main checkout HEAD unchanged on main" '[ "$(git -C "$MAIN" rev-parse HEAD
 check "no hello.txt in main checkout" '[ ! -e "$MAIN/hello.txt" ]'
 check "worker exited" '[ "$(supervisor_live)" = no ]'
 check "Worker ran in auto permission mode" 'grep -q "\"permissionMode\":\"auto\"" "$TASK_DIR/worker.log"'
+check "coord resolved on the Worker's PATH" '! grep -q "coord: command not found" "$TASK_DIR/worker.log"'
 check "no permission requests or MCP config" '[ ! -e "$TASK_DIR/permissions" ] && [ ! -e "$TASK_DIR/mcp.json" ]'
 check "coord show prints the Report" '[ "$(coord show "$ID" --report)" = "$(cat "$TASK_DIR/report.md")" ]'
+GUARD_IN=$(printf '{"hook_event_name":"PreToolUse","tool_name":"Write","tool_input":{"file_path":"%s/evil.txt","content":"x"}}' "$MAIN")
+GUARD_OUT=$(printf '%s' "$GUARD_IN" | coord _guard "$ID")
+check "guard denies a Write into the main checkout" 'grep -q "\"deny\"" <<<"$GUARD_OUT"'
 check "a detached process with no terminal is refused" 'grep -q "changes the Fleet" <<<"$REFUSED"'
 echo
 echo "report: $(cat "$TASK_DIR/report.md" 2>/dev/null)"
