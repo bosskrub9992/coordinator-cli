@@ -1,0 +1,532 @@
+{
+ "repos/cli/cli/pulls/14519": {
+  "pages": [
+   {
+    "number": 14519,
+    "state": "closed",
+    "merged": true,
+    "head": {
+     "sha": "97577e407ff3aee505aec675da081da75a24224a"
+    },
+    "html_url": "https://github.com/cli/cli/pull/14519"
+   }
+  ]
+ },
+ "repos/cli/cli/pulls/14519/reviews?per_page=100": {
+  "pages": [
+   [
+    {
+     "id": 5319607822,
+     "state": "COMMENTED",
+     "body": "<!-- ccr-overview-v2 -->\n\n## Copilot review overview\n\n### \ud83d\udfe1 Changes recommended\n\nThe help text incorrectly describes PR search capabilities and omits legacy-hos...",
+     "html_url": "https://github.com/cli/cli/pull/14519#pullrequestreview-5319607822",
+     "user": {
+      "login": "copilot-pull-request-reviewer[bot]",
+      "type": "Bot"
+     },
+     "submitted_at": "2026-09-25T15:38:36Z"
+    },
+    {
+     "id": 5319993594,
+     "state": "COMMENTED",
+     "body": "",
+     "html_url": "https://github.com/cli/cli/pull/14519#pullrequestreview-5319993594",
+     "user": {
+      "login": "waldyrious",
+      "type": "User"
+     },
+     "submitted_at": "2026-09-25T16:17:55Z"
+    },
+    {
+     "id": 5319995888,
+     "state": "COMMENTED",
+     "body": "",
+     "html_url": "https://github.com/cli/cli/pull/14519#pullrequestreview-5319995888",
+     "user": {
+      "login": "waldyrious",
+      "type": "User"
+     },
+     "submitted_at": "2026-09-25T16:18:11Z"
+    },
+    {
+     "id": 5320198099,
+     "state": "COMMENTED",
+     "body": "<!-- ccr-overview-v2 -->\n\n## Copilot review overview\n\n### \ud83d\udfe1 Changes recommended\n\nThe required eligible issue or maintainer authorization is not identified.\n\n*Ge...",
+     "html_url": "https://github.com/cli/cli/pull/14519#pullrequestreview-5320198099",
+     "user": {
+      "login": "copilot-pull-request-reviewer[bot]",
+      "type": "Bot"
+     },
+     "submitted_at": "2026-09-25T16:40:56Z"
+    },
+    {
+     "id": 5321772694,
+     "state": "CHANGES_REQUESTED",
+     "body": "",
+     "html_url": "https://github.com/cli/cli/pull/14519#pullrequestreview-5321772694",
+     "user": {
+      "login": "BagToad",
+      "type": "User"
+     },
+     "submitted_at": "2026-09-25T19:22:21Z"
+    },
+    {
+     "id": 5321811844,
+     "state": "COMMENTED",
+     "body": "",
+     "html_url": "https://github.com/cli/cli/pull/14519#pullrequestreview-5321811844",
+     "user": {
+      "login": "BagToad",
+      "type": "User"
+     },
+     "submitted_at": "2026-09-25T19:22:56Z"
+    }
+   ],
+   [
+    {
+     "id": 5322381916,
+     "state": "COMMENTED",
+     "body": "",
+     "html_url": "https://github.com/cli/cli/pull/14519#pullrequestreview-5322381916",
+     "user": {
+      "login": "waldyrious",
+      "type": "User"
+     },
+     "submitted_at": "2026-09-25T20:28:19Z"
+    },
+    {
+     "id": 5322435256,
+     "state": "COMMENTED",
+     "body": "",
+     "html_url": "https://github.com/cli/cli/pull/14519#pullrequestreview-5322435256",
+     "user": {
+      "login": "waldyrious",
+      "type": "User"
+     },
+     "submitted_at": "2026-09-25T20:34:23Z"
+    },
+    {
+     "id": 5323103352,
+     "state": "COMMENTED",
+     "body": "",
+     "html_url": "https://github.com/cli/cli/pull/14519#pullrequestreview-5323103352",
+     "user": {
+      "login": "BagToad",
+      "type": "User"
+     },
+     "submitted_at": "2026-09-25T21:57:02Z"
+    },
+    {
+     "id": 5323112836,
+     "state": "COMMENTED",
+     "body": "",
+     "html_url": "https://github.com/cli/cli/pull/14519#pullrequestreview-5323112836",
+     "user": {
+      "login": "BagToad",
+      "type": "User"
+     },
+     "submitted_at": "2026-09-25T21:58:31Z"
+    },
+    {
+     "id": 5324977021,
+     "state": "COMMENTED",
+     "body": "",
+     "html_url": "https://github.com/cli/cli/pull/14519#pullrequestreview-5324977021",
+     "user": {
+      "login": "waldyrious",
+      "type": "User"
+     },
+     "submitted_at": "2026-09-26T06:48:03Z"
+    },
+    {
+     "id": 5324980901,
+     "state": "COMMENTED",
+     "body": "",
+     "html_url": "https://github.com/cli/cli/pull/14519#pullrequestreview-5324980901",
+     "user": {
+      "login": "waldyrious",
+      "type": "User"
+     },
+     "submitted_at": "2026-09-26T06:49:40Z"
+    }
+   ],
+   [
+    {
+     "id": 5324983219,
+     "state": "COMMENTED",
+     "body": "",
+     "html_url": "https://github.com/cli/cli/pull/14519#pullrequestreview-5324983219",
+     "user": {
+      "login": "waldyrious",
+      "type": "User"
+     },
+     "submitted_at": "2026-09-26T06:50:47Z"
+    },
+    {
+     "id": 5347711347,
+     "state": "COMMENTED",
+     "body": "Voya32",
+     "html_url": "https://github.com/cli/cli/pull/14519#pullrequestreview-5347711347",
+     "user": {
+      "login": "chj2dctmcr-debug",
+      "type": "User"
+     },
+     "submitted_at": "2026-09-29T04:29:09Z"
+    },
+    {
+     "id": 5355430879,
+     "state": "APPROVED",
+     "body": "",
+     "html_url": "https://github.com/cli/cli/pull/14519#pullrequestreview-5355430879",
+     "user": {
+      "login": "BagToad",
+      "type": "User"
+     },
+     "submitted_at": "2026-09-29T16:22:58Z"
+    }
+   ]
+  ]
+ },
+ "repos/cli/cli/commits/97577e407ff3aee505aec675da081da75a24224a/check-runs?per_page=100": {
+  "pages": [
+   {
+    "total_count": 18,
+    "check_runs": [
+     {
+      "name": "close-from-default-branch",
+      "status": "completed",
+      "conclusion": "skipped"
+     },
+     {
+      "name": "close-unmet-requirements",
+      "status": "completed",
+      "conclusion": "skipped"
+     },
+     {
+      "name": "check-requirements / check-requirements",
+      "status": "completed",
+      "conclusion": "skipped"
+     },
+     {
+      "name": "check-requirements / close-unmet-requirements",
+      "status": "completed",
+      "conclusion": "skipped"
+     },
+     {
+      "name": "close-no-help-wanted",
+      "status": "completed",
+      "conclusion": "skipped"
+     },
+     {
+      "name": "label-external",
+      "status": "completed",
+      "conclusion": "skipped"
+     },
+     {
+      "name": "ready-for-review",
+      "status": "completed",
+      "conclusion": "skipped"
+     },
+     {
+      "name": "CodeQL",
+      "status": "completed",
+      "conclusion": "success"
+     },
+     {
+      "name": "build (windows-latest)",
+      "status": "completed",
+      "conclusion": "success"
+     },
+     {
+      "name": "integration-tests (macos-latest)",
+      "status": "completed",
+      "conclusion": "success"
+     }
+    ]
+   },
+   {
+    "total_count": 18,
+    "check_runs": [
+     {
+      "name": "build (ubuntu-latest)",
+      "status": "completed",
+      "conclusion": "success"
+     },
+     {
+      "name": "integration-tests (ubuntu-latest)",
+      "status": "completed",
+      "conclusion": "success"
+     },
+     {
+      "name": "build (macos-latest)",
+      "status": "completed",
+      "conclusion": "success"
+     },
+     {
+      "name": "integration-tests (windows-latest)",
+      "status": "completed",
+      "conclusion": "success"
+     },
+     {
+      "name": "CodeQL-Build (go, manual, ./.github/codeql/codeql-config.yml)",
+      "status": "completed",
+      "conclusion": "success"
+     },
+     {
+      "name": "lint",
+      "status": "completed",
+      "conclusion": "success"
+     },
+     {
+      "name": "CodeQL-Build (actions, none, security-and-quality)",
+      "status": "completed",
+      "conclusion": "success"
+     },
+     {
+      "name": "govulncheck",
+      "status": "completed",
+      "conclusion": "success"
+     }
+    ]
+   }
+  ]
+ },
+ "repos/cli/cli/commits/97577e407ff3aee505aec675da081da75a24224a/status?per_page=100": {
+  "pages": [
+   {
+    "state": "pending",
+    "sha": "97577e407ff3aee505aec675da081da75a24224a",
+    "total_count": 0,
+    "statuses": []
+   }
+  ]
+ },
+ "repos/cli/cli/issues/14519/comments?per_page=100": {
+  "pages": [
+   [
+    {
+     "id": 5835049811,
+     "body": "Thanks for your pull request! While it doesn't meet all of our standard requirements, it appears to be a small, focused contribution and has been routed to the ...",
+     "html_url": "https://github.com/cli/cli/pull/14519#issuecomment-5835049811",
+     "user": {
+      "login": "github-actions[bot]",
+      "type": "Bot"
+     },
+     "created_at": "2026-09-25T15:34:01Z"
+    },
+    {
+     "id": 5835081370,
+     "body": "> While it doesn't meet all of our standard requirements\r\n\r\nOh? What requirements doesn't it meet? \ud83e\udd14",
+     "html_url": "https://github.com/cli/cli/pull/14519#issuecomment-5835081370",
+     "user": {
+      "login": "waldyrious",
+      "type": "User"
+     },
+     "created_at": "2026-09-25T15:36:12Z"
+    },
+    {
+     "id": 5835204889,
+     "body": "> > While it doesn't meet all of our standard requirements\r\n> \r\n> Oh? What requirements doesn't it meet? \ud83e\udd14\r\n\r\nhttps://github.com/cli/cli/blob/9b031151a825bda919...",
+     "html_url": "https://github.com/cli/cli/pull/14519#issuecomment-5835204889",
+     "user": {
+      "login": "williammartin",
+      "type": "User"
+     },
+     "created_at": "2026-09-25T15:44:58Z"
+    }
+   ],
+   [
+    {
+     "id": 5835269986,
+     "body": "Oh, sorry, I was going by the contents of the PR template \ud83d\ude05 Thanks for the clarification. I am now addressing Copilot's comments and will update the PR shortly!",
+     "html_url": "https://github.com/cli/cli/pull/14519#issuecomment-5835269986",
+     "user": {
+      "login": "waldyrious",
+      "type": "User"
+     },
+     "created_at": "2026-09-25T15:49:03Z"
+    },
+    {
+     "id": 5836156576,
+     "body": "@williammartin I believe this should now be ready for maintainer review :)\r\n\r\nRegarding changes to the prompt about the CONTRIBUTING.md guidelines, I suppose yo...",
+     "html_url": "https://github.com/cli/cli/pull/14519#issuecomment-5836156576",
+     "user": {
+      "login": "waldyrious",
+      "type": "User"
+     },
+     "created_at": "2026-09-25T16:53:38Z"
+    }
+   ]
+  ]
+ },
+ "repos/cli/cli/pulls/14519/comments?per_page=100": {
+  "pages": [
+   [
+    {
+     "id": 4106126529,
+     "body": "\ud83d\uded1 Requirement: Scope this guidance to advanced-search-capable API calls\n\nThis is true for the default API search only when the host supports advanced issue sear...",
+     "html_url": "https://github.com/cli/cli/pull/14519#discussion_r4106126529",
+     "user": {
+      "login": "Copilot",
+      "type": "Bot"
+     },
+     "created_at": "2026-09-25T15:38:35Z"
+    },
+    {
+     "id": 4106126589,
+     "body": "\ud83d\uded1 Requirement: Do not claim pull-request searches lack advanced syntax\n\nThe default `gh search prs` path uses the same advanced issue-search REST backend as `gh...",
+     "html_url": "https://github.com/cli/cli/pull/14519#discussion_r4106126589",
+     "user": {
+      "login": "Copilot",
+      "type": "Bot"
+     },
+     "created_at": "2026-09-25T15:38:36Z"
+    },
+    {
+     "id": 4106458120,
+     "body": "Addressed in [8e55103](https://github.com/cli/cli/compare/33d0240d4fe01138d7ac11798003c13b1f6dd24e..8e551033fcc80e1e7914d0121bb3ea92cf5e4155).",
+     "html_url": "https://github.com/cli/cli/pull/14519#discussion_r4106458120",
+     "user": {
+      "login": "waldyrious",
+      "type": "User"
+     },
+     "created_at": "2026-09-25T16:17:55Z"
+    },
+    {
+     "id": 4106460114,
+     "body": "Addressed in [8e55103](https://github.com/cli/cli/compare/33d0240d4fe01138d7ac11798003c13b1f6dd24e..8e551033fcc80e1e7914d0121bb3ea92cf5e4155).",
+     "html_url": "https://github.com/cli/cli/pull/14519#discussion_r4106460114",
+     "user": {
+      "login": "waldyrious",
+      "type": "User"
+     },
+     "created_at": "2026-09-25T16:18:11Z"
+    },
+    {
+     "id": 4106637471,
+     "body": "\ud83d\uded1 Requirement: Link an eligible issue before proceeding\n\nThe PR does not identify an existing issue with both the `help wanted` label and explicit Acceptance Cr...",
+     "html_url": "https://github.com/cli/cli/pull/14519#discussion_r4106637471",
+     "user": {
+      "login": "Copilot",
+      "type": "Bot"
+     },
+     "created_at": "2026-09-25T16:40:56Z"
+    },
+    {
+     "id": 4107865905,
+     "body": "Issue: the list of host availability should be removed since this list is not exhaustive and it presents a maintenance burden where one day GHES 3.18 will be so...",
+     "html_url": "https://github.com/cli/cli/pull/14519#discussion_r4107865905",
+     "user": {
+      "login": "BagToad",
+      "type": "User"
+     },
+     "created_at": "2026-09-25T19:18:21Z"
+    }
+   ],
+   [
+    {
+     "id": 4107868980,
+     "body": "Issue: same as above\n\n```suggestion\n\t\t\ton GitHub hosts with advanced issue search,\n```",
+     "html_url": "https://github.com/cli/cli/pull/14519#discussion_r4107868980",
+     "user": {
+      "login": "BagToad",
+      "type": "User"
+     },
+     "created_at": "2026-09-25T19:18:46Z"
+    },
+    {
+     "id": 4107885267,
+     "body": "Suggest: Somewhere around here I think there should be a link to https://docs.github.com/en/enterprise-cloud@latest/issues/tracking-your-work-with-issues/using-...",
+     "html_url": "https://github.com/cli/cli/pull/14519#discussion_r4107885267",
+     "user": {
+      "login": "BagToad",
+      "type": "User"
+     },
+     "created_at": "2026-09-25T19:20:59Z"
+    },
+    {
+     "id": 4107899463,
+     "body": "Suggestion applies to both comments.",
+     "html_url": "https://github.com/cli/cli/pull/14519#discussion_r4107899463",
+     "user": {
+      "login": "BagToad",
+      "type": "User"
+     },
+     "created_at": "2026-09-25T19:22:56Z"
+    },
+    {
+     "id": 4108367439,
+     "body": "Sure \u2014 I modeled this after the existing wording in `item list`:\n\nhttps://github.com/cli/cli/blob/9b031151a825bda919203c5202876a725d637368/pkg/cmd/project/item-...",
+     "html_url": "https://github.com/cli/cli/pull/14519#discussion_r4108367439",
+     "user": {
+      "login": "waldyrious",
+      "type": "User"
+     },
+     "created_at": "2026-09-25T20:28:18Z"
+    },
+    {
+     "id": 4108408863,
+     "body": "Hmmm. I wonder if this info (about the operators and quoted strings) shouldn't instead be merged into the existing paragraph below, about advanced search syntax...",
+     "html_url": "https://github.com/cli/cli/pull/14519#discussion_r4108408863",
+     "user": {
+      "login": "waldyrious",
+      "type": "User"
+     },
+     "created_at": "2026-09-25T20:34:22Z"
+    },
+    {
+     "id": 4108962035,
+     "body": "Sure, I don't mind that \ud83d\udc4d ",
+     "html_url": "https://github.com/cli/cli/pull/14519#discussion_r4108962035",
+     "user": {
+      "login": "BagToad",
+      "type": "User"
+     },
+     "created_at": "2026-09-25T21:57:02Z"
+    }
+   ],
+   [
+    {
+     "id": 4108971098,
+     "body": "Good catch, thank you for mentioning this other instance. I'll remove that `item-list` one in another PR \ud83d\ude47 ",
+     "html_url": "https://github.com/cli/cli/pull/14519#discussion_r4108971098",
+     "user": {
+      "login": "BagToad",
+      "type": "User"
+     },
+     "created_at": "2026-09-25T21:58:31Z"
+    },
+    {
+     "id": 4110495971,
+     "body": "Alright, I updated the patch to modify the existing advanced search paragraph instead of introducing a new one. Let me know what you think!",
+     "html_url": "https://github.com/cli/cli/pull/14519#discussion_r4110495971",
+     "user": {
+      "login": "waldyrious",
+      "type": "User"
+     },
+     "created_at": "2026-09-26T06:48:03Z"
+    },
+    {
+     "id": 4110500210,
+     "body": "[Removed](https://github.com/cli/cli/compare/61c9b23fa405a2c3f677ffa921d9bb32a4b3786f..97577e407ff3aee505aec675da081da75a24224a) in the latest version.",
+     "html_url": "https://github.com/cli/cli/pull/14519#discussion_r4110500210",
+     "user": {
+      "login": "waldyrious",
+      "type": "User"
+     },
+     "created_at": "2026-09-26T06:49:39Z"
+    },
+    {
+     "id": 4110502951,
+     "body": "I've [applied this](https://github.com/cli/cli/compare/61c9b23fa405a2c3f677ffa921d9bb32a4b3786f..97577e407ff3aee505aec675da081da75a24224a) in the latest version...",
+     "html_url": "https://github.com/cli/cli/pull/14519#discussion_r4110502951",
+     "user": {
+      "login": "waldyrious",
+      "type": "User"
+     },
+     "created_at": "2026-09-26T06:50:47Z"
+    }
+   ]
+  ]
+ }
+}

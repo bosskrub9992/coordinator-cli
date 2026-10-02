@@ -1,0 +1,13 @@
+/coord
+/coord.exe
+/dist/
+spikes/**
+!spikes/
+!spikes/go.mod
+!spikes/m0/
+!spikes/m0/*/
+!spikes/m0/*/FINDINGS.md
+!spikes/m1/
+!spikes/m1/*/
+!spikes/m1/*/FINDINGS.md
+/.export-deny
