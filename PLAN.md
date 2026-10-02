@@ -1,6 +1,6 @@
 # coordinator-cli — Plan
 
-Status: **approved 2026-10-01; M0 done ([findings](docs/m0-findings.md)); M1 built and tested (it also absorbed M2's steering and `coord wait`); first real use done; permissions handed to Claude Code's auto mode ([ADR-0004](docs/adr/0004-coord-is-the-coordinators-toolbox.md)); M3, M4 and M5 built and tested 2026-10-02 on branch `m4-mr-lifecycle` (uncommitted, [ADR-0005](docs/adr/0005-a-task-ends-when-its-sop-is-finished.md)); M6 needs a Windows machine**. Vocabulary: [CONTEXT.md](CONTEXT.md). Decisions: [docs/adr/](docs/adr/).
+Status: **approved 2026-10-01; M0 done ([findings](docs/m0-findings.md)); M1 built and tested (it also absorbed M2's steering and `coord wait`); first real use done; permissions handed to Claude Code's auto mode ([ADR-0004](docs/adr/0004-coord-is-the-coordinators-toolbox.md)); M3, M4 and M5 built and tested 2026-10-02 ([ADR-0005](docs/adr/0005-a-task-ends-when-its-sop-is-finished.md)); M6 done 2026-10-03 on Windows 11 ([docs/windows.md](docs/windows.md))**. Vocabulary: [CONTEXT.md](CONTEXT.md). Decisions: [docs/adr/](docs/adr/).
 
 ## Impact
 
@@ -126,11 +126,11 @@ Internal choices (adopted):
 - **Approvals.** An MR approved with green CI raises `mr-ready` ("ready to merge"), since merging is the Captain's word (the Captain, 2026-10-02).
 - **Multi-repo, pulled forward from M3** (the Captain, 2026-10-02: more than one MR per Task is common). A Task holds several Projects: `coord task new --project` repeats, and `coord task add-project <task> <project>` adds one later (a deploy's Unleash or deploy-config edit). The Worker gets one leased worktree per Project; a Task may have any number of MRs, several in one repo included (stacked MRs, beta cherry-picks, follow-ups), and how many is the SOP's call, not coord's; each `--mr` is recorded against its repo; MRs the Task did not open (a deploy-config MR opened by CI) are linked with `coord task add-mr`. The watcher tracks them all, `land` waits for all, and the Report gives the merge order across all of them (proto → provider → consumer, base before stacked), which "ready to merge" follows. M3 keeps only the merge-order checks across Tasks.
 
-### M5 — Notifications — DONE (macOS verified; Windows toast and Linux `notify-send` untested)
+### M5 — Notifications — DONE (macOS and Windows verified; Linux `notify-send` untested)
 - `coord notify "<text>"`: the Coordinator decides the Captain is needed; `coord` only delivers the macOS Notification Center or Windows toast.
 - While no Coordinator is open, `coord` itself sends a plain notice when a Task finishes, fails, or asks a question, so the Captain knows to reopen `coord`.
 
-### M6 — Windows and retirement
+### M6 — Windows and retirement — DONE 2026-10-03, see [docs/windows.md](docs/windows.md)
 - Full smoke run on Windows with Git Bash: launch, Worker, treehouse, MR watch, notifications.
 - Document anything that behaves differently there.
 - Retire the previous orchestrator skill.
