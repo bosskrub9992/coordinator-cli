@@ -197,7 +197,7 @@ func TestStatusAndStopHookReapLostSupervisor(t *testing.T) {
 		t.Fatalf("stop hook left %s %s", b, tk.State)
 	}
 	c := lostSupervisor(t, f, "gamma")
-	line, err := statusLine(f.home, f.store, "", "/launch")
+	line, err := statusLine(f.home, f.store, "", absPath("/launch"))
 	if err != nil || !strings.Contains(line, "3 failed") || strings.Contains(line, "need") || strings.Contains(line, "running") {
 		t.Fatalf("status line %q %v", line, err)
 	}
@@ -211,7 +211,7 @@ func TestStatusLineCountsAndUnsupervised(t *testing.T) {
 	a := f.task(t, "alpha", task.Running, task.NeedsDecision)
 	f.task(t, "beta", task.Running, task.Blocked)
 	f.task(t, "gamma", task.Running)
-	line, err := statusLine(f.home, f.store, "", "/launch")
+	line, err := statusLine(f.home, f.store, "", absPath("/launch"))
 	if err != nil || !strings.Contains(line, "1 running · 2 need you") || strings.Contains(line, "blocked") {
 		t.Fatalf("status line %q %v", line, err)
 	}
@@ -225,7 +225,7 @@ func TestStatusLineCountsAndUnsupervised(t *testing.T) {
 		t.Fatalf("json %q %v", out, err)
 	}
 	f.store.AppendFleet(task.Event{Type: task.EventUnsupervised})
-	if line, _ := statusLine(f.home, f.store, "", "/launch"); !strings.Contains(line, "unsupervised") {
+	if line, _ := statusLine(f.home, f.store, "", absPath("/launch")); !strings.Contains(line, "unsupervised") {
 		t.Fatalf("status line misses unsupervised: %q", line)
 	}
 }

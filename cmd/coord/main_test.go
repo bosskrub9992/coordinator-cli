@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"sync"
@@ -181,11 +182,11 @@ func TestSupersededTokenRefused(t *testing.T) {
 	if err := hm.Ensure(); err != nil {
 		t.Fatal(err)
 	}
-	old, err := hm.AcquireLock(home.Owner{LaunchFolder: "/a"}, false)
+	old, err := hm.AcquireLock(home.Owner{LaunchFolder: absPath("/a")}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	cur, err := hm.AcquireLock(home.Owner{LaunchFolder: "/b"}, true)
+	cur, err := hm.AcquireLock(home.Owner{LaunchFolder: absPath("/b")}, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -195,7 +196,7 @@ func TestSupersededTokenRefused(t *testing.T) {
 	}
 	t.Setenv(home.EnvToken, cur.Token)
 	out, err := coord(t, "", "status")
-	if err != nil || !strings.Contains(out, "Coordinator: live") || !strings.Contains(out, "/b") {
+	if err != nil || !strings.Contains(out, "Coordinator: live") || !strings.Contains(out, absPath("/b")) {
 		t.Fatalf("current token: %q %v", out, err)
 	}
 }
@@ -216,4 +217,46 @@ func TestAge(t *testing.T) {
 			t.Errorf("age(%v) = %q want %q", tt.d, got, tt.want)
 		}
 	}
+}
+
+func absPath(p string) string {
+	abs, err := filepath.Abs(p)
+	if err != nil {
+		panic(err)
+	}
+	return abs
+}
+
+func linkSelf(t *testing.T, dir, name string) string {
+	t.Helper()
+	self, err := filepath.Abs(os.Args[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	bin := filepath.Join(dir, name)
+	if runtime.GOOS == "windows" {
+		bin += ".exe"
+		raw, err := os.ReadFile(self)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(bin, raw, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		return bin
+	}
+	if err := os.Symlink(self, bin); err != nil {
+		t.Fatal(err)
+	}
+	return bin
+}
+
+func addOrigin(t *testing.T, repo, origin string) {
+	t.Helper()
+	slashed := filepath.ToSlash(origin)
+	if runtime.GOOS != "windows" {
+		runGit(t, repo, "remote", "add", "origin", "file://localhost"+slashed)
+		return
+	}
+	runGit(t, repo, "remote", "add", "origin", slashed)
 }

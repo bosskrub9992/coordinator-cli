@@ -31,7 +31,7 @@ func newFleet(t *testing.T) fleet {
 
 func (f fleet) task(t *testing.T, title string, states ...task.State) task.ID {
 	t.Helper()
-	tk, err := f.store.Create(task.NewTask{Title: title, Class: config.Ship, Projects: []string{"p"}, Brief: "b", LaunchFolder: "/launch"})
+	tk, err := f.store.Create(task.NewTask{Title: title, Class: config.Ship, Projects: []string{"p"}, Brief: "b", LaunchFolder: absPath("/launch")})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -142,11 +142,11 @@ func TestWaitShutdown(t *testing.T) {
 func TestWaitSupersededLeavesEventsUnread(t *testing.T) {
 	f := newFleet(t)
 	a := f.task(t, "alpha", task.Running)
-	old, err := f.home.AcquireLock(home.Owner{LaunchFolder: "/a"}, false)
+	old, err := f.home.AcquireLock(home.Owner{LaunchFolder: absPath("/a")}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := f.home.AcquireLock(home.Owner{LaunchFolder: "/b"}, true); err != nil {
+	if _, err := f.home.AcquireLock(home.Owner{LaunchFolder: absPath("/b")}, true); err != nil {
 		t.Fatal(err)
 	}
 	f.event(t, a, task.Event{Type: task.EventNote, Text: "x"})

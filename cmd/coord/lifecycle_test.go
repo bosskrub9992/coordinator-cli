@@ -27,7 +27,7 @@ func (r *workerRig) addRepo(name string) string {
 	os.WriteFile(filepath.Join(repo, "AGENTS.md"), []byte(strings.ToUpper(name)+"-AGENTS-MARKER\n"), 0o644)
 	runGit(r.t, repo, "add", ".")
 	runGit(r.t, repo, "commit", "-q", "-m", "init")
-	runGit(r.t, repo, "remote", "add", "origin", "file://localhost"+filepath.ToSlash(origin))
+	addOrigin(r.t, repo, origin)
 	runGit(r.t, repo, "push", "-q", "origin", "main")
 	if out, err := coord(r.t, "", "project", "add", repo, "--name", name); err != nil {
 		r.t.Fatalf("project add %s: %q %v", name, out, err)
@@ -36,7 +36,13 @@ func (r *workerRig) addRepo(name string) string {
 }
 
 func mrFor(origin string, n int) string {
-	return fmt.Sprintf("https://localhost/%s/-/merge_requests/%d", strings.TrimPrefix(filepath.ToSlash(strings.TrimSuffix(origin, ".git")), "/"), n)
+	host := "localhost"
+	repo := strings.TrimSuffix(origin, ".git")
+	if vol := filepath.VolumeName(repo); vol != "" {
+		host = strings.TrimSuffix(vol, ":")
+		repo = strings.TrimPrefix(repo, vol)
+	}
+	return fmt.Sprintf("https://%s/%s/-/merge_requests/%d", host, strings.TrimPrefix(filepath.ToSlash(repo), "/"), n)
 }
 
 func (r *workerRig) setMRs(id task.ID, st mrwatch.State) {
@@ -157,7 +163,7 @@ func TestMultiProjectShipLandFlow(t *testing.T) {
 	if _, err := s.Transition(id, task.Merged, "all merged"); err != nil {
 		t.Fatal(err)
 	}
-	if line, _ := statusLine(home.New(r.home), s, "", "/launch"); !strings.Contains(line, "1 merged") || strings.Contains(line, "need") {
+	if line, _ := statusLine(home.New(r.home), s, "", absPath("/launch")); !strings.Contains(line, "1 merged") || strings.Contains(line, "need") {
 		t.Errorf("status line %q", line)
 	}
 	deploy := "https://gitlab.example.com/acme/platform/deploy-config/-/merge_requests/9"
@@ -358,7 +364,7 @@ func TestUsageLimitBlocksTheTask(t *testing.T) {
 func TestAckAndAddMRCommands(t *testing.T) {
 	f := newFleet(t)
 	id := f.task(t, "ship it", task.Running, task.WaitingReview)
-	scout, err := f.store.Create(task.NewTask{Title: "look", Class: "scout", Projects: []string{"p"}, Brief: "b", LaunchFolder: "/launch"})
+	scout, err := f.store.Create(task.NewTask{Title: "look", Class: "scout", Projects: []string{"p"}, Brief: "b", LaunchFolder: absPath("/launch")})
 	if err != nil {
 		t.Fatal(err)
 	}

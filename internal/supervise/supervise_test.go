@@ -23,10 +23,14 @@ func envMap(env []string) map[string]string {
 }
 
 func TestWorkerEnv(t *testing.T) {
+	sep := string(os.PathListSeparator)
 	bin := filepath.Join(t.TempDir(), "coord")
+	if runtime.GOOS == "windows" {
+		bin += ".exe"
+	}
 	os.WriteFile(bin, []byte("#!/bin/sh\n"), 0o755)
 	parent := []string{
-		"PATH=/usr/bin:/bin",
+		"PATH=/usr/bin" + sep + "/bin",
 		"HOME=/home/x",
 		"CLAUDECODE=1",
 		"CLAUDE_CODE_SESSION_ID=abc",
@@ -56,15 +60,15 @@ func TestWorkerEnv(t *testing.T) {
 		"COORD_ROLE": "worker", "COORD_TASK": "001-x", "COORD_HOME": "/h",
 		"CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD": "1", "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "1",
 		"HOME": "/home/x", "ORCA_PANE_KEY": "p", "HERDR_X": "1", "CLAUDE_CODE_FORCE_SESSION_PERSISTENCE": "1",
-		"PATH": filepath.Dir(bin) + string(os.PathListSeparator) + "/usr/bin:/bin",
+		"PATH": filepath.Dir(bin) + sep + "/usr/bin" + sep + "/bin",
 	}
 	for k, v := range want {
 		if m[k] != v {
 			t.Errorf("%s = %q want %q", k, m[k], v)
 		}
 	}
-	m = envMap(WorkerEnv([]string{"PATH=" + filepath.Dir(bin) + ":/usr/bin"}, "/h", "001-x", bin))
-	if m["PATH"] != filepath.Dir(bin)+":/usr/bin" {
+	m = envMap(WorkerEnv([]string{"PATH=" + filepath.Dir(bin) + sep + "/usr/bin"}, "/h", "001-x", bin))
+	if m["PATH"] != filepath.Dir(bin)+sep+"/usr/bin" {
 		t.Errorf("PATH prepended twice: %s", m["PATH"])
 	}
 	if _, ok := envMap(SupervisorEnv(parent))["COORD_TOKEN"]; ok {

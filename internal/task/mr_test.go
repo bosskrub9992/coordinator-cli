@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -93,7 +94,7 @@ func TestMRProgress(t *testing.T) {
 
 func registerProject(t *testing.T, s *Store, name, origin string) {
 	t.Helper()
-	if err := project.NewRegistry(s.home).Add(project.Project{Name: name, Path: "/repos/" + name, Origin: origin, CodeHost: project.CodeHost{Kind: project.GitLab}}); err != nil {
+	if err := project.NewRegistry(s.home).Add(project.Project{Name: name, Path: filepath.Join(t.TempDir(), name), Origin: origin, CodeHost: project.CodeHost{Kind: project.GitLab}}); err != nil {
 		t.Fatal(err)
 	}
 }

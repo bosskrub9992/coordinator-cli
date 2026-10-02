@@ -259,7 +259,7 @@ func TestLaunchTakeover(t *testing.T) {
 			if _, err := s.Transition(tk.ID, task.Running, ""); err != nil {
 				t.Fatal(err)
 			}
-			owner := home.Owner{LaunchFolder: "/elsewhere"}
+			owner := home.Owner{LaunchFolder: absPath("/elsewhere")}
 			if tt.stale {
 				owner.PID = deadPID(t)
 			}

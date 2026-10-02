@@ -110,7 +110,15 @@ func newFake(t *testing.T, name, fixture string) *fakeRig {
 	if runtime.GOOS == "windows" {
 		bin += ".exe"
 	}
-	if err := os.Symlink(self, bin); err != nil {
+	if runtime.GOOS == "windows" {
+		raw, err := os.ReadFile(self)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(bin, raw, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	} else if err := os.Symlink(self, bin); err != nil {
 		t.Fatal(err)
 	}
 	r := &fakeRig{t: t, bin: bin, fixture: filepath.Join(dir, "fixture.json"), log: filepath.Join(dir, "calls.jsonl")}
