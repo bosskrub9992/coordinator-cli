@@ -247,3 +247,54 @@ func TestEnvFileScript(t *testing.T) {
 		t.Fatalf("got %q want %q", got, want)
 	}
 }
+
+func TestWithEnvFile(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "env.sh")
+	bin := filepath.Join(dir, "bin", "coord")
+	base := []string{"A=1"}
+	if runtime.GOOS != "windows" {
+		got, err := WithEnvFile(base, path, bin)
+		if err != nil || len(got) != 1 || got[0] != "A=1" {
+			t.Fatalf("got %v %v", got, err)
+		}
+		if _, err := os.Stat(path); !os.IsNotExist(err) {
+			t.Fatalf("env file written on %s: %v", runtime.GOOS, err)
+		}
+		return
+	}
+	got, err := WithEnvFile(base, path, "")
+	if err != nil || len(got) != 1 {
+		t.Fatalf("empty coordBin: %v %v", got, err)
+	}
+	got, err = WithEnvFile(base, path, bin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if envMap(got)[EnvFileVar] != path || envMap(got)["A"] != "1" {
+		t.Fatalf("got %v", got)
+	}
+	b, _ := os.ReadFile(path)
+	if string(b) != EnvFileScript(filepath.Dir(bin), "") {
+		t.Fatalf("script %q", b)
+	}
+	inherited := filepath.Join(dir, "user-env.sh")
+	got, err = WithEnvFile([]string{EnvFileVar + "=" + inherited}, path, bin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if envMap(got)[EnvFileVar] != path {
+		t.Fatalf("got %v", got)
+	}
+	b, _ = os.ReadFile(path)
+	if string(b) != EnvFileScript(filepath.Dir(bin), inherited) || !strings.HasPrefix(string(b), ". ") {
+		t.Fatalf("inherited not chained: %q", b)
+	}
+	if _, err := WithEnvFile([]string{EnvFileVar + "=" + strings.ToUpper(path)}, path, bin); err != nil {
+		t.Fatal(err)
+	}
+	b, _ = os.ReadFile(path)
+	if string(b) != EnvFileScript(filepath.Dir(bin), "") {
+		t.Fatalf("self-reference chained: %q", b)
+	}
+}
