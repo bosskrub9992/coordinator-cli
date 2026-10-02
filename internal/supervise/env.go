@@ -64,8 +64,8 @@ func resolvesTo(val, coordBin string) bool {
 		}
 		for _, name := range []string{"coord", "coord.exe"} {
 			p := filepath.Join(dir, name)
-			if _, err := exec.LookPath(p); err == nil {
-				return canonical(p) == want
+			if found, err := exec.LookPath(p); err == nil {
+				return canonical(found) == want
 			}
 		}
 	}
