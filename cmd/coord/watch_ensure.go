@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/exec"
 	"os/signal"
 	"syscall"
 	"time"
@@ -43,21 +42,10 @@ func startWatcher(a *app) error {
 	if err != nil {
 		return err
 	}
-	logf, err := os.OpenFile(watcher.LogPath(a.home), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
-	if err != nil {
-		return err
-	}
-	defer logf.Close()
-	c := exec.Command(bin, "_watch")
-	c.Dir = a.home.Root
-	c.Env = watcherEnv(os.Environ())
-	c.Stdout = logf
-	c.Stderr = logf
-	detach(c)
-	if err := c.Start(); err != nil {
+	if _, err := startDetached(detachSpec{Bin: bin, Args: []string{"_watch"}, Dir: a.home.Root, Env: watcherEnv(os.Environ()), Log: watcher.LogPath(a.home)}); err != nil {
 		return fmt.Errorf("start the MR watcher: %w", err)
 	}
-	return c.Process.Release()
+	return nil
 }
 
 func newWatchMRsCmd(a *app) *cobra.Command {

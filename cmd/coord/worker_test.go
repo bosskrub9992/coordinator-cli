@@ -24,7 +24,7 @@ func TestMain(m *testing.M) {
 	if filepath.Base(os.Args[0]) == "claude" {
 		os.Exit(fakeclaude.Main())
 	}
-	if os.Getenv(envTestMain) == "1" {
+	if os.Getenv(envTestMain) == "1" || (len(os.Args) == 3 && os.Args[1] == detachedArg) {
 		watcherStarter = func(*app) error { return nil }
 		notifier = &fakeNotifier{}
 		main()

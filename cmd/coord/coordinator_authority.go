@@ -31,7 +31,7 @@ func isOpen(cmd *cobra.Command) bool {
 }
 
 func coordManaged() bool {
-	for _, k := range []string{home.EnvToken, supervise.EnvTask, supervise.EnvRole} {
+	for _, k := range []string{home.EnvToken, supervise.EnvTask, supervise.EnvRole, envDetached} {
 		if os.Getenv(k) != "" {
 			return true
 		}
