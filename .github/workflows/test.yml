@@ -19,7 +19,7 @@ jobs:
           go-version-file: go.mod
       - run: git config --global user.name ci && git config --global user.email ci@example.com
         shell: bash
-      - run: go install github.com/kunchenguid/treehouse@latest
+      - run: go install github.com/kunchenguid/treehouse@v0.0.0-20260926052010-c099281010ef
       - run: go vet ./...
       - if: runner.os != 'Windows'
         run: go test -race ./cmd/... ./internal/...
