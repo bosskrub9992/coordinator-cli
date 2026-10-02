@@ -20,6 +20,10 @@ var FinalStates = []task.State{task.Reported, task.WaitingReview, task.Merged, t
 
 func IsFinal(s task.State) bool { return slices.Contains(FinalStates, s) }
 
+func Reported(t task.Task) bool {
+	return IsFinal(t.State) || (t.State == task.NeedsDecision && t.QuestionFrom == task.QuestionFromWatcher)
+}
+
 type Supervisor struct {
 	Store     *task.Store
 	Runner    harness.WorkerRunner
@@ -97,6 +101,11 @@ func (s *Supervisor) state() task.State {
 	return t.State
 }
 
+func (s *Supervisor) reported() bool {
+	t, err := s.Store.Get(s.Task)
+	return err == nil && Reported(t)
+}
+
 func (s *Supervisor) transition(to task.State, note string) {
 	cur := s.state()
 	if cur == to || !task.CanTransition(cur, to) {
@@ -165,7 +174,7 @@ func (s *Supervisor) Run(ctx context.Context) error {
 	steers, stopped := s.startQueue()
 	if stopped || (resume && len(steers) == 0) {
 		s.release(harness.WorkerExit{})
-		if stopped && !IsFinal(s.state()) {
+		if stopped && !s.reported() {
 			s.transition(task.Failed, "stopped by the Coordinator before the Worker started")
 		}
 		return nil
@@ -349,7 +358,7 @@ func (s *Supervisor) loop(ctx context.Context, w harness.Worker, ls *loopState) 
 					stop("the Coordinator stopped the Worker")
 				case InboxReported:
 					s.archive(m)
-					if IsFinal(s.state()) {
+					if s.reported() {
 						closeStdin("final Report submitted")
 					}
 				default:
@@ -465,7 +474,7 @@ func (s *Supervisor) onTurnEnded(ls *loopState, ev harness.WorkerEvent, closeStd
 			return nil
 		})
 	}
-	if IsFinal(s.state()) {
+	if s.reported() {
 		closeStdin("final Report submitted")
 		return
 	}
@@ -550,9 +559,10 @@ func (s *Supervisor) onExit(ls *loopState, ev harness.WorkerEvent) {
 		text += " on " + x.Signal
 	}
 	s.Store.Append(s.Task, task.Event{Type: task.EventWorkerExited, Text: text, Data: data})
-	cur := s.state()
+	t, _ := s.Store.Get(s.Task)
+	cur := t.State
 	switch {
-	case IsFinal(cur):
+	case Reported(t):
 	case ls.stopRequested:
 		s.transition(task.Failed, "stopped by the Coordinator before a final Report")
 	case cur == task.Running:
