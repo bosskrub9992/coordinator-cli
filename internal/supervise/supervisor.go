@@ -175,6 +175,12 @@ func (s *Supervisor) Run(ctx context.Context) error {
 			s.logf("rewrite Worker files: %v", err)
 		}
 	}
+	env := WorkerEnv(s.Env, s.HomeRoot, string(t.ID), s.CoordBin)
+	if withFile, err := WithEnvFile(env, s.Store.EnvFilePath(t.ID), s.CoordBin); err != nil {
+		s.logf("write the Worker env file: %v", err)
+	} else {
+		env = withFile
+	}
 	spec := harness.WorkerSpec{
 		TaskID:           string(t.ID),
 		SessionID:        rec.SessionID,
@@ -185,7 +191,7 @@ func (s *Supervisor) Run(ctx context.Context) error {
 		SystemPromptFile: s.Store.SystemPromptPath(t.ID),
 		PermissionMode:   PermissionMode,
 		SettingsFile:     s.Store.SettingsPath(t.ID),
-		Env:              WorkerEnvWithFile(WorkerEnv(s.Env, s.HomeRoot, string(t.ID), s.CoordBin), s.Store, t.ID),
+		Env:              env,
 		LogPath:          s.Store.WorkerLogPath(t.ID),
 	}
 	var w harness.Worker
