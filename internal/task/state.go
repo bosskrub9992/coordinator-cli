@@ -93,7 +93,7 @@ var stateTable = []StateInfo{
 		landShip,
 	}},
 	{Reported, "the Report is written (scout, review-code, or a ship Task with no MR)", []State{Running, NeedsDecision, WaitingReview, Merged, Landed, Failed, Dropped}, false, []Move{
-		{Command: "coord land <task>", When: "once the Captain has the Report's outcome; no word needed", Classes: []config.Class{config.Scout, config.ReviewCode}},
+		{Command: "coord land <task>", When: "in the same turn you give the Captain the Report's outcome; never ask first", Classes: []config.Class{config.Scout, config.ReviewCode}},
 		landShip,
 		followUp,
 		addMR,

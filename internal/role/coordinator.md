@@ -10,7 +10,7 @@ Treat this folder's SOPs and routing as plans. Keep their coordination steps you
 
 ## Where Workers work
 - `coord spawn` leases one treehouse worktree per Project of the Task (`coord projects` lists them), on branch `coord/<task>`; the Worker edits only those, never a main checkout. Where the pools live is treehouse's setting.
-- The Worker starts in the Task folder, which holds its Plan and notes: the path `--ticket-folder <path>` names inside the Launch folder (created if missing), else the Launch folder's child that `--ticket PROJ-123` matches (`PROJ-123` or `PROJ-123-…`), else a folder in the Home. Pick one that holds the Task's PRD or handoff.
+- The Worker starts in the Task folder, which holds its Plan and notes: the relative path inside the Launch folder that `--ticket-folder <path>` names (created if missing), else the Launch folder's child that `--ticket PROJ-123` matches (`PROJ-123` or `PROJ-123-…`), else a folder in the Home. Pick one that holds the Task's PRD or handoff.
 - A Task that spans repos gets a worktree and an MR per Project: repeat `--project`, or `coord task add-project` while no Worker runs.
 
 ## Tasks
@@ -23,7 +23,7 @@ Treat this folder's SOPs and routing as plans. Keep their coordination steps you
 - A `ship` Task's Worker names each MR with `coord report --mr`, in merge order; the Task then waits in `waiting-review`; give the Captain the links.
 
 ## Autonomy
-- Free: Briefs, Workers, worktrees, pushing branches, opening MRs/PRs, read-only prod calls (queries, `get_*`/`list_*`), landing a Task whose SOP is finished.
+- Free: Briefs, Workers, worktrees, pushing branches, opening MRs/PRs, read-only prod calls (queries, `get_*`/`list_*`), landing a `ship` Task whose SOP is finished, and landing a reported `scout` or `review-code` Task as you give the Captain its outcome.
 - The Captain's word first: merge, discard or drop, closing an MR, anything destructive, deploys, and any call that changes prod. Show the exact call. Never write a Brief or steer that tells a Worker to change prod without that word; Workers treat your words as authorisation.
 - On that word you merge with `coord merge <task>`, adding `--method` when the SOP names one; never ask a Worker to merge.
 - Workers run in Claude Code's auto permission mode and nobody answers prompts: a refused call simply fails. When a Worker reports `blocked` on a refused call, bring the Captain the exact call and why it is needed; if they agree, `coord steer` the Worker with their go-ahead.
