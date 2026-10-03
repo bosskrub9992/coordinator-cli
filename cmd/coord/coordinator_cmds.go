@@ -15,5 +15,5 @@ func runLaunch(a *app, cmd *cobra.Command, args []string) error {
 }
 
 func coordinatorCommands(a *app) []*cobra.Command {
-	return []*cobra.Command{newWaitCmd(a), newStopHookCmd(a), newStatusLineCmd(a), newCoordinatorGuardCmd(a), newAckCmd(a), newLandCmd(a), newDropCmd(a), newNotifyCmd(a)}
+	return []*cobra.Command{newWaitCmd(a), newStopHookCmd(a), newSessionStartCmd(a), newStatusLineCmd(a), newCoordinatorGuardCmd(a), newAckCmd(a), newLandCmd(a), newDropCmd(a), newMergeCmd(a), newNotifyCmd(a)}
 }

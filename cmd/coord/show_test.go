@@ -38,7 +38,8 @@ func TestShowIsOpenAndRendersTheReport(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{string(id), "waiting-review", "Class:       ship", "Project:     p", "/pool/1/p (branch coord/" + string(id) + ")", "MR:          " + mr, "claude-opus-5-5 high", "Report:\n# Fixed\nlogin timeout gone\n"} {
+	for _, want := range []string{string(id), "waiting-review", "Class:       ship", "Project:     p", "/pool/1/p (branch coord/" + string(id) + ")", "MR:          " + mr, "claude-opus-5-5 high", "Report:\n# Fixed\nlogin timeout gone\n",
+		"Next:        coord merge " + string(id) + ": on the Captain's word", "\n             coord drop " + string(id) + ": on the Captain's word"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("show lacks %q:\n%s", want, out)
 		}

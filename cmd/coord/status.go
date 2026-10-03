@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"path/filepath"
+	"slices"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -58,6 +59,19 @@ func (t taskView) mrSummary() string {
 	return strings.Join(parts, ", ")
 }
 
+func (t taskView) nextVerbs() string {
+	var verbs []string
+	for _, m := range t.Moves() {
+		if v := m.Verb(); v != "" && !slices.Contains(verbs, v) {
+			verbs = append(verbs, v)
+		}
+	}
+	if len(verbs) == 0 {
+		return "-"
+	}
+	return strings.Join(verbs, ", ")
+}
+
 func (t taskView) display() string {
 	return string(t.State)
 }
@@ -75,7 +89,7 @@ func newStatusCmd(a *app) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "status",
 		Short: "Show the Fleet board: every Task with its state and age",
-		Long:  "Show the Fleet board. Landed and Dropped Tasks are hidden unless --all is given.",
+		Long:  "Show the Fleet board. NEXT lists the commands that can move each Task on; coord show <task> explains them.\nLanded and Dropped Tasks are hidden unless --all is given.",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			v, err := buildStatus(a.home, all)
@@ -165,9 +179,9 @@ func printStatus(w io.Writer, v statusView, now time.Time) error {
 		return nil
 	}
 	tw := tabwriter.NewWriter(w, 0, 0, 2, ' ', 0)
-	fmt.Fprintln(tw, "TASK\tSTATE\tAGE\tIN STATE\tCLASS\tPROJECTS\tMRS\tTASK FOLDER")
+	fmt.Fprintln(tw, "TASK\tSTATE\tAGE\tIN STATE\tCLASS\tPROJECTS\tMRS\tTASK FOLDER\tNEXT")
 	for _, t := range v.Tasks {
-		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", t.ID, t.display(), age(now.Sub(t.CreatedAt)), age(now.Sub(t.StateSince)), t.Class, strings.Join(t.Projects, ","), t.mrSummary(), shortFolder(t.Folder))
+		fmt.Fprintf(tw, "%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n", t.ID, t.display(), age(now.Sub(t.CreatedAt)), age(now.Sub(t.StateSince)), t.Class, strings.Join(t.Projects, ","), t.mrSummary(), shortFolder(t.Folder), t.nextVerbs())
 	}
 	return tw.Flush()
 }

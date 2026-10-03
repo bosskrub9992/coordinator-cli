@@ -20,7 +20,7 @@ func liveWorker(a *app, ref string) (task.Task, task.WorkerRecord, error) {
 		return t, w, err
 	}
 	if !w.SupervisorLive() {
-		return t, w, fmt.Errorf("Task %s has no live Worker (state %s)", t.ID, t.State)
+		return t, w, fmt.Errorf("Task %s has no live Worker. %s", t.ID, t.NextHint())
 	}
 	return t, w, nil
 }
@@ -46,7 +46,7 @@ func newSteerCmd(a *app) *cobra.Command {
 				return fmt.Errorf("Task %s has no Worker yet; start it with coord spawn %s", t.ID, t.ID)
 			}
 			if t.State.Terminal() {
-				return fmt.Errorf("Task %s is %s; it cannot be steered", t.ID, t.State)
+				return fmt.Errorf("Task %s is %s and final; it cannot be steered. Start a new Task for more work", t.ID, t.State)
 			}
 			w, err := s.Worker(t.ID)
 			if err != nil {
@@ -54,6 +54,11 @@ func newSteerCmd(a *app) *cobra.Command {
 			}
 			if w.SessionID == "" {
 				return fmt.Errorf("Task %s has no Worker session", t.ID)
+			}
+			if t.State == task.NeedsDecision && t.QuestionFrom == task.QuestionFromWatcher && !w.SupervisorLive() {
+				if _, err := s.Ack(t.ID, "MR facts handed to the Worker with a steer"); err != nil {
+					return err
+				}
 			}
 			m, err := supervise.Post(s, t.ID, supervise.InboxSteer, text)
 			if err != nil {

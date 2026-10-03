@@ -180,7 +180,34 @@ func addMRs(mrs []MR, source MRSource, at time.Time, ps []project.Project, prefe
 		}
 		mrs = append(mrs, MR{Ref: r, Project: MatchProject(r, ps, prefer), Source: source, AddedAt: at})
 	}
+	if source == MRFromWorker {
+		reorderNamed(mrs, refs)
+	}
 	return mrs
+}
+
+func reorderNamed(mrs []MR, refs []mrwatch.Ref) {
+	var order []string
+	for _, r := range refs {
+		if k := mrKey(r); !slices.Contains(order, k) {
+			order = append(order, k)
+		}
+	}
+	var slots []int
+	byKey := map[string]MR{}
+	for i, m := range mrs {
+		if k := mrKey(m.Ref); m.Source == MRFromWorker && slices.Contains(order, k) {
+			slots = append(slots, i)
+			byKey[k] = m
+		}
+	}
+	n := 0
+	for _, k := range order {
+		if m, ok := byKey[k]; ok {
+			mrs[slots[n]] = m
+			n++
+		}
+	}
 }
 
 func (s *Store) legacyMRs(id ID) ([]MR, error) {

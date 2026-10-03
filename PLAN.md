@@ -1,6 +1,6 @@
 # coordinator-cli — Plan
 
-Status: **approved 2026-10-01; M0 done ([findings](docs/m0-findings.md)); M1 built and tested (it also absorbed M2's steering and `coord wait`); first real use done; permissions handed to Claude Code's auto mode ([ADR-0004](docs/adr/0004-coord-is-the-coordinators-toolbox.md)); M3, M4 and M5 built and tested 2026-10-02 ([ADR-0005](docs/adr/0005-a-task-ends-when-its-sop-is-finished.md)); M6 done 2026-10-03 on Windows 11 ([docs/windows.md](docs/windows.md))**. Vocabulary: [CONTEXT.md](CONTEXT.md). Decisions: [docs/adr/](docs/adr/).
+Status: **approved 2026-10-01; M0 done ([findings](docs/m0-findings.md)); M1 built and tested (it also absorbed M2's steering and `coord wait`); first real use done; permissions handed to Claude Code's auto mode ([ADR-0004](docs/adr/0004-coord-is-the-coordinators-toolbox.md)); M3, M4 and M5 built and tested 2026-10-02 ([ADR-0005](docs/adr/0005-a-task-ends-when-its-sop-is-finished.md)); M6 done 2026-10-03 on Windows 11 ([docs/windows.md](docs/windows.md)); M7 built and tested 2026-10-03, GitLab merge untried ([ADR-0006](docs/adr/0006-the-coordinator-learns-coord-from-coord.md))**. Vocabulary: [CONTEXT.md](CONTEXT.md). Decisions: [docs/adr/](docs/adr/).
 
 ## Impact
 
@@ -21,8 +21,8 @@ Out of scope for this plan: Codex and Cursor Harnesses (the adapter seam is buil
 |---|---|
 | Start | `coord` launches Claude Code in the current folder, with the Coordinator role at system-prompt level, its own memory in the Home, and a status line that shows the Captain's own status line with a Fleet line under it |
 | One Coordinator | A second `coord` asks `[y/N]` to take over; the old session's `coord` calls are refused afterwards; `coord --continue` resumes the last Coordinator conversation |
-| Restart | A new Coordinator rebuilds the Fleet from the Home and live processes and opens with a status recap |
-| Workers | Start in the Launch folder by default (overridable per Project or Task), with leased worktrees attached and their `CLAUDE.md` loaded; they write only to their worktrees and their ticket folder |
+| Restart | A new Coordinator rebuilds the Fleet from the Home and live processes; a SessionStart hook hands it the Fleet, and its first reply opens with a recap |
+| Workers | Start in the Task folder: a folder inside the Launch folder named by `--ticket-folder` or matched by `--ticket`, otherwise one in the Home; leased worktrees attached and their `CLAUDE.md` loaded; they write only to their worktrees and their Task folder |
 | Lookups | The Coordinator does one or two small, predictable calls itself; anything open-ended or large, or in doubt, goes to a `scout` |
 | Autonomy | Free: Briefs, Workers, worktrees, pushing branches, opening MRs/PRs, read-only prod calls (queries, `get_*`/`list_*`). Captain's word: merge, discard or drop, closing an MR, anything destructive, deploys, and any call that changes prod (shown with the exact call) |
 | Permissions | The Coordinator and Workers run in Claude Code's `auto` mode, as the Captain's own sessions do; `coord` makes no permission decisions. A Worker's refused call fails at once; it reports `blocked`, the Coordinator brings the Captain the exact call, and the go-ahead returns as a steer |
@@ -32,7 +32,8 @@ Out of scope for this plan: Codex and Cursor Harnesses (the adapter seam is buil
 | Model and effort | Per Task, then per Project, then class matrix. The Coordinator's own picks come only from `coordinator_may_choose` and never from `forbidden_models`. Every Report records what ran |
 | Usage limits | The Worker stops and the Task is `blocked` with "usage limit, resets at HH:MM"; the Captain is told once; nothing resumes on its own, the Coordinator resumes it when the Captain is back |
 | After the MR | The Worker exits when the MR is up and green. A 2-minute poll (`mr_poll_interval` in the config) reports facts only (merged, new comments, CI turned red or green, closed); the Coordinator acts on them by the Launch folder's SOP, and where the SOP is silent it brings them to the Captain. Review comments are fixed only when the Captain agrees, by resuming the original Worker; replies on the MR are posted only when the SOP says so. After the merge, the SOP's next steps (deploy) start only when the SOP says so, otherwise on the Captain's word |
-| Landed | A Task ends when its Project's SOP is finished (for example: deployed to prod and post-checked), not at the merge; the Coordinator lands it itself and mentions it in the recap. The worktree stays leased until then |
+| Landed | A `ship` Task ends when its Project's SOP is finished (for example: deployed to prod and post-checked), not at the merge; a `scout` or `review-code` Task ends once its Report has reached the Captain. The Coordinator lands it itself and mentions it in the recap. A `ship` worktree stays leased until then |
+| Merge | On the Captain's word the Coordinator runs `coord merge <task>`, which merges the open MRs in the order they were linked and stops at the first failure; never a Worker |
 | Drop | Stops a running Worker first, then cleans up the worktree and the Task; the MR and remote branch are untouched unless the Captain says "and close the MR" |
 | Notify | Desktop notification only when the Captain is needed: the Coordinator sends `coord notify`; while no Coordinator is open, coord itself sends a plain notice when a Task is reported, waiting on its MRs, needs a decision, is blocked, or failed |
 | Home | `~/.coordinator-cli/` (`COORD_HOME` overrides), one folder on both operating systems |
@@ -42,7 +43,7 @@ Out of scope for this plan: Codex and Cursor Harnesses (the adapter seam is buil
 - **Language:** Go, a single binary for macOS and Windows/Git Bash. JSON config. Task state is written atomically, and the event log only ever grows.
 - **Coordinator launch:** `claude` in the current folder with
   - `--append-system-prompt-file` (the built-in role plus `~/.coordinator-cli/COORDINATOR.md`); role wording per [M0 item 6](spikes/m0/c-coordinator/FINDINGS.md): keep the folder's coordination gates, always background `coord wait`, re-arm before replying, never substitute subagents
-  - `--settings`, setting `autoMemoryDirectory` to `~/.coordinator-cli/memory`, the status line, and the `coord _stop-hook` Stop hook (reads `background_tasks`; one reminder per stop, pointing at unread events when there are any, then an `unsupervised` Fleet event)
+  - `--settings`, setting `autoMemoryDirectory` to `~/.coordinator-cli/memory`, the status line, the `coord _stop-hook` Stop hook (reads `background_tasks`; one reminder per stop, pointing at unread events when there are any, then an `unsupervised` Fleet event), and the `coord _session-start` SessionStart hook (the Fleet and unread events as context, and a recap request except after compaction)
   - `--permission-mode auto`, `--allowedTools "Bash(coord:*)"`, `--disallowedTools NotebookEdit EnterWorktree` plus the git-write and shell-wrapper Bash denies; a `coord _coordinator-guard` PreToolUse hook lets Edit/Write touch only `~/.coordinator-cli/memory` (a plain Edit/Write deny also blocks auto memory, [spike](spikes/m1/b-compact/FINDINGS.md))
   - `--model` and `--effort` from config
 - **Worker launch:** a detached `coord _supervise <task>` process runs, from the Task folder,
@@ -134,6 +135,16 @@ Internal choices (adopted):
 - Full smoke run on Windows with Git Bash: launch, Worker, treehouse, MR watch, notifications.
 - Document anything that behaves differently there.
 - Retire the previous orchestrator skill.
+
+### M7 — The Coordinator knows coord — BUILT 2026-10-03, see [ADR-0006](docs/adr/0006-the-coordinator-learns-coord-from-coord.md)
+The Captain gets a Coordinator that offers only moves coord allows, knows the way out of every state, answers "can coord do X?" from coord rather than guesswork, opens each session with a recap, closes finished scouts, and merges on the Captain's word itself.
+- **One source.** The state table holds each state's moves (command, when, Task class, whose question). The Coordinator role's states section is generated from it; `coord show` prints `Next:`, `coord status` a `NEXT` column, and refusals name the moves.
+- **Role.** "Knowing coord" (check `--help` before claiming; never spend a Worker learning coord) and "Where Workers work" (worktrees, Task folder choice, multi-repo).
+- **SessionStart hook.** `coord _session-start` hands the Coordinator the Fleet at start, resume, clear and compaction.
+- **`coord merge <task> [--mr <url>]... [--method merge|squash|rebase]`.** `gh pr merge`/`glab mr merge` of the Worker's open MRs in linked order (linked MRs only when named with `--mr`), the method from `--method`, else the only one a GitHub repo allows, else the GitLab project's own; never asks for branch deletion, admin override or auto-merge; stops at the first MR that fails or is not confirmed merged; clears only the merged MRs' facts and settles the Task as the watcher would.
+- **Landing scouts.** `coord land` accepts a `scout` or `review-code` Task in `reported`.
+- **Steering on MR facts.** `coord steer` on a Task holding the watcher's facts acknowledges them first, so fixed comments do not come back as a question.
+- **Tried.** A live Coordinator in the e2e rig opened with a recap, explained the Task folder and multi-repo worktrees from its role without a scout, and landed a reported scout as it gave the outcome. A real SessionStart hook reached Claude Code 2.1.288. On the sandbox GitHub repo it linked a second PR, `coord merge` refused without `--method` because the repo allows all three methods, then squash-merged both PRs in order with `--mr`, kept both branches, settled the Task to `merged` without waking `coord wait`, and the Coordinator landed it. Without `--mr` it merged only the Worker's PR and listed the linked one as left open, with the Task staying `waiting-review`; run again, it refused and named the linked PR and `--mr`. Not yet tried: a real GitLab MR.
 
 ## Risks
 

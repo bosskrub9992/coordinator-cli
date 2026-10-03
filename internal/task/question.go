@@ -4,10 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/bosskrub9992/coordinator-cli/internal/config"
 	"github.com/bosskrub9992/coordinator-cli/internal/home"
+	"github.com/bosskrub9992/coordinator-cli/internal/mrwatch"
 )
 
 type QuestionSource string
@@ -18,6 +20,8 @@ const (
 )
 
 const AckNote = "acknowledged"
+
+const MergeNote = "settled by coord merge"
 
 var ErrWorkerLive = errors.New("the Task's Worker is live")
 
@@ -138,6 +142,36 @@ func (s *Store) settle(t *Task, note string) (*Event, error) {
 	return ev, nil
 }
 
+func (s *Store) ResolveAsks(id ID, merged []mrwatch.Ref, note string) (Task, error) {
+	var evs []Event
+	return s.update(id, func(t *Task) error {
+		evs = nil
+		gone := make(map[string]bool, len(merged))
+		for _, r := range merged {
+			gone[mrKey(r)] = true
+		}
+		if _, err := s.UpdateMRFile(id, func(f *MRFile) error {
+			f.Asks = slices.DeleteFunc(f.Asks, func(a Ask) bool {
+				r, err := mrwatch.ParseURL(a.URL)
+				return err == nil && gone[mrKey(r)]
+			})
+			for i := range f.MRs {
+				if gone[mrKey(f.MRs[i].Ref)] {
+					f.MRs[i].CommentsSinceAck = 0
+				}
+			}
+			return nil
+		}); err != nil {
+			return err
+		}
+		ev, err := s.settle(t, note)
+		if ev != nil {
+			evs = append(evs, *ev)
+		}
+		return err
+	}, func(Task) error { return s.appendAll(id, evs) })
+}
+
 func (s *Store) Ack(id ID, note string) (Task, error) {
 	var evs []Event
 	return s.update(id, func(t *Task) error {
@@ -159,11 +193,11 @@ func (s *Store) Ack(id ID, note string) (Task, error) {
 		switch t.State {
 		case NeedsDecision:
 			if t.QuestionFrom != QuestionFromWatcher {
-				return fmt.Errorf("Task %s's pending question is the Worker's own; answer it with coord steer %s <message>", id, id)
+				return fmt.Errorf("Task %s's pending question is the Worker's own; answer it with coord steer %s <answer>", id, id)
 			}
 		case WaitingReview, Merged, Reported:
 		default:
-			return fmt.Errorf("Task %s is %s; coord ack is for a Task waiting on its MRs or holding the watcher's question", id, t.State)
+			return fmt.Errorf("coord ack is for a Task waiting on its MRs or holding the watcher's question. %s", t.NextHint())
 		}
 		if _, err := s.UpdateMRFile(id, func(f *MRFile) error {
 			f.Asks = nil

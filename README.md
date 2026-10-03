@@ -23,9 +23,9 @@ Vocabulary: [CONTEXT.md](CONTEXT.md). Design decisions: [docs/adr/](docs/adr/). 
     coord project add ~/src/api     # register a repo as a Project
     coord                           # start the Coordinator in the current folder
     coord --continue                # resume the last Coordinator conversation
-    coord status                    # the Fleet: every Task, its state and MRs
+    coord status                    # the Fleet: every Task, its state, MRs and next moves
 
-Everything else (`coord task new`, `coord spawn`, `coord wait`, `coord steer`, `coord land`, ...) is run by the Coordinator itself; `coord --help` lists them.
+Everything else (`coord task new`, `coord spawn`, `coord wait`, `coord steer`, `coord merge`, `coord land`, ...) is run by the Coordinator itself; `coord --help` lists them, and `coord show <task>` prints the moves open to one Task.
 
 State lives in `~/.coordinator-cli/` (`COORD_HOME` overrides): `config.json` for models, efforts and plan approval, `COORDINATOR.md` for your own additions to the Coordinator role, such as when a Task counts as finished in your workflow.
 

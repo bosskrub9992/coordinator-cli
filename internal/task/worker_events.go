@@ -9,4 +9,5 @@ const (
 	EventMRLinked           EventType = "mr-linked"
 	EventDroppedWork        EventType = "dropped-work"
 	EventPlan               EventType = "plan"
+	EventMerged             EventType = "merged"
 )

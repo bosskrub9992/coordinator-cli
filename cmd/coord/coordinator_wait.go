@@ -288,10 +288,10 @@ func deliver(ctx context.Context, h home.Home, s *task.Store, o waitOptions, w i
 func quiet(e task.Event) bool {
 	switch e.Type {
 	case task.EventCreated, task.EventSteer, task.EventWorkerStarted, task.EventInstructionsLoaded, task.EventWorktreeReturned,
-		task.EventAck, task.EventMRLinked, task.EventDroppedWork:
+		task.EventAck, task.EventMRLinked, task.EventDroppedWork, task.EventMerged:
 		return true
 	case task.EventStateChanged:
-		return e.To == task.Running || e.To == task.Landed || e.To == task.Dropped || e.Text == task.AckNote
+		return e.To == task.Running || e.To == task.Landed || e.To == task.Dropped || e.Text == task.AckNote || e.Text == task.MergeNote
 	}
 	return false
 }
