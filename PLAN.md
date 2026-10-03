@@ -1,6 +1,6 @@
 # coordinator-cli — Plan
 
-Status: **approved 2026-10-01; M0 done ([findings](docs/m0-findings.md)); M1 built and tested (it also absorbed M2's steering and `coord wait`); first real use done; permissions handed to Claude Code's auto mode ([ADR-0004](docs/adr/0004-coord-is-the-coordinators-toolbox.md)); M3, M4 and M5 built and tested 2026-10-02 ([ADR-0005](docs/adr/0005-a-task-ends-when-its-sop-is-finished.md)); M6 done 2026-10-03 on Windows 11 ([docs/windows.md](docs/windows.md)); M7 built and tested 2026-10-03 ([ADR-0006](docs/adr/0006-the-coordinator-learns-coord-from-coord.md))**. Vocabulary: [CONTEXT.md](CONTEXT.md). Decisions: [docs/adr/](docs/adr/).
+Status: **approved 2026-10-01; M0 done ([findings](docs/m0-findings.md)); M1 built and tested (it also absorbed M2's steering and `coord wait`); first real use done; permissions handed to Claude Code's auto mode ([ADR-0004](docs/adr/0004-coord-is-the-coordinators-toolbox.md)); M3, M4 and M5 built and tested 2026-10-02 ([ADR-0005](docs/adr/0005-a-task-ends-when-its-sop-is-finished.md)); M6 done 2026-10-03 on Windows 11 ([docs/windows.md](docs/windows.md)); M7 built and tested 2026-10-03, real merges untried ([ADR-0006](docs/adr/0006-the-coordinator-learns-coord-from-coord.md))**. Vocabulary: [CONTEXT.md](CONTEXT.md). Decisions: [docs/adr/](docs/adr/).
 
 ## Impact
 
@@ -144,7 +144,7 @@ The Captain gets a Coordinator that offers only moves coord allows, knows the wa
 - **`coord merge <task> [--mr <url>]... [--method merge|squash|rebase]`.** `gh pr merge`/`glab mr merge` of the Worker's open MRs in linked order (linked MRs only when named with `--mr`), the method from `--method`, else the only one a GitHub repo allows, else the GitLab project's own; never asks for branch deletion, admin override or auto-merge; stops at the first MR that fails or is not confirmed merged; clears only the merged MRs' facts and settles the Task as the watcher would.
 - **Landing scouts.** `coord land` accepts a `scout` or `review-code` Task in `reported`.
 - **Steering on MR facts.** `coord steer` on a Task holding the watcher's facts acknowledges them first, so fixed comments do not come back as a question.
-- **Left to try.** An e2e run with a live Coordinator in the e2e rig, and a real `glab mr merge`.
+- **Tried.** A live Coordinator in the e2e rig opened with a recap, explained the Task folder and multi-repo worktrees from its role without a scout, and landed a reported scout as it gave the outcome. A real SessionStart hook reached Claude Code 2.1.288. Not yet tried: `coord merge` against a real GitHub or GitLab MR.
 
 ## Risks
 
