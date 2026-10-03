@@ -137,8 +137,8 @@ func TestStopHookPointsAtUnreadEvents(t *testing.T) {
 func TestStopHookSupersededAllows(t *testing.T) {
 	f := newFleet(t)
 	f.task(t, "live", task.Running)
-	old, _ := f.home.AcquireLock(home.Owner{LaunchFolder: "/a"}, false)
-	cur, _ := f.home.AcquireLock(home.Owner{LaunchFolder: "/b"}, true)
+	old, _ := f.home.AcquireLock(home.Owner{LaunchFolder: absPath("/a")}, false)
+	cur, _ := f.home.AcquireLock(home.Owner{LaunchFolder: absPath("/b")}, true)
 	if blocked(t, runHook(t, f, old.Token, hookInput("s", false))) {
 		t.Fatal("superseded session blocked")
 	}
@@ -150,8 +150,8 @@ func TestStopHookSupersededAllows(t *testing.T) {
 func TestStopHookCommandIgnoresStaleToken(t *testing.T) {
 	f := newFleet(t)
 	f.task(t, "live", task.Running)
-	old, _ := f.home.AcquireLock(home.Owner{LaunchFolder: "/a"}, false)
-	f.home.AcquireLock(home.Owner{LaunchFolder: "/b"}, true)
+	old, _ := f.home.AcquireLock(home.Owner{LaunchFolder: absPath("/a")}, false)
+	f.home.AcquireLock(home.Owner{LaunchFolder: absPath("/b")}, true)
 	t.Setenv(home.EnvToken, old.Token)
 	out, err := coord(t, hookInput("s", false), "_stop-hook")
 	if err != nil || out != "" {
@@ -161,7 +161,7 @@ func TestStopHookCommandIgnoresStaleToken(t *testing.T) {
 
 func TestStatusLine(t *testing.T) {
 	f := newFleet(t)
-	lock, err := f.home.AcquireLock(home.Owner{LaunchFolder: "/w/workspace"}, false)
+	lock, err := f.home.AcquireLock(home.Owner{LaunchFolder: absPath("/w/workspace")}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -179,7 +179,7 @@ func TestStatusLine(t *testing.T) {
 	if out != "coord · workspace · 2 running · 1 needs you\n" {
 		t.Fatalf("%q", out)
 	}
-	f.home.AcquireLock(home.Owner{LaunchFolder: "/w/other"}, true)
+	f.home.AcquireLock(home.Owner{LaunchFolder: absPath("/w/other")}, true)
 	out, err = coord(t, "{}", "_statusline")
 	if err != nil || !strings.Contains(out, "superseded") {
 		t.Fatalf("%q %v", out, err)
@@ -237,12 +237,12 @@ func TestStatusLineComposesCaptainLine(t *testing.T) {
 
 func TestHooksTrackTheCoordinatorSession(t *testing.T) {
 	f := newFleet(t)
-	lock, err := f.home.AcquireLock(home.Owner{LaunchFolder: "/w", SessionID: "first"}, false)
+	lock, err := f.home.AcquireLock(home.Owner{LaunchFolder: absPath("/w"), SessionID: "first"}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	os.MkdirAll(f.home.CoordinatorRunDir(), 0o755)
-	if err := home.WriteJSONAtomic(sessionPath(f.home), sessionRecord{SessionID: "first", LaunchFolder: "/w"}); err != nil {
+	if err := home.WriteJSONAtomic(sessionPath(f.home), sessionRecord{SessionID: "first", LaunchFolder: absPath("/w")}); err != nil {
 		t.Fatal(err)
 	}
 	t.Setenv(home.EnvToken, lock.Token)

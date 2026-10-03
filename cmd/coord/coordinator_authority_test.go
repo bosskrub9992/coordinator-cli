@@ -172,7 +172,7 @@ func probeTerminal(t *testing.T, detached bool) string {
 	c := exec.Command(os.Args[0], "-test.run=^TestTerminalProbeChild$")
 	c.Env = append(os.Environ(), terminalProbeEnv+"=1")
 	if detached {
-		detach(c)
+		c.SysProcAttr = detachAttr()
 	}
 	null, err := os.Open(os.DevNull)
 	if err != nil {

@@ -3,9 +3,12 @@ package supervise
 import (
 	"encoding/json"
 	"fmt"
+	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/bosskrub9992/coordinator-cli/internal/config"
+	"github.com/bosskrub9992/coordinator-cli/internal/envlist"
 	"github.com/bosskrub9992/coordinator-cli/internal/home"
 	"github.com/bosskrub9992/coordinator-cli/internal/instructions"
 	"github.com/bosskrub9992/coordinator-cli/internal/role"
@@ -103,6 +106,38 @@ func WriteFiles(s *task.Store, t task.Task, w task.WorkerRecord, coordBin string
 		return err
 	}
 	return home.WriteJSONAtomic(s.SettingsPath(t.ID), Settings(coordBin, t.ID))
+}
+
+const EnvFileVar = "CLAUDE_ENV_FILE"
+
+func WithEnvFile(env []string, path, coordBin string) ([]string, error) {
+	if runtime.GOOS != "windows" || coordBin == "" {
+		return env, nil
+	}
+	inherited := envlist.Get(env, EnvFileVar)
+	if strings.EqualFold(filepath.Clean(inherited), filepath.Clean(path)) {
+		inherited = ""
+	}
+	if err := home.WriteFileAtomic(path, []byte(EnvFileScript(filepath.Dir(coordBin), inherited)), 0o644); err != nil {
+		return nil, err
+	}
+	return envlist.Set(env, EnvFileVar, path), nil
+}
+
+func EnvFileScript(binDir, inherited string) string {
+	s := "export PATH=" + shellquote.Join(bashPath(binDir)) + ":\"$PATH\"\n"
+	if inherited != "" {
+		s = ". " + shellquote.Join(bashPath(inherited)) + "\n" + s
+	}
+	return s
+}
+
+func bashPath(p string) string {
+	p = filepath.ToSlash(p)
+	if len(p) >= 2 && p[1] == ':' {
+		p = "/" + strings.ToLower(p[:1]) + p[2:]
+	}
+	return p
 }
 
 func LoadedInstructions(s *task.Store, id task.ID) []string {

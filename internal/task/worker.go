@@ -80,6 +80,7 @@ func (s *Store) InboxDir(id ID) string         { return filepath.Join(s.Dir(id),
 func (s *Store) QuestionPath(id ID) string     { return filepath.Join(s.Dir(id), "question.md") }
 func (s *Store) SystemPromptPath(id ID) string { return filepath.Join(s.Dir(id), "system-prompt.md") }
 func (s *Store) SettingsPath(id ID) string     { return filepath.Join(s.Dir(id), "settings.json") }
+func (s *Store) EnvFilePath(id ID) string      { return filepath.Join(s.Dir(id), "worker-env.sh") }
 func (s *Store) InstructionsPath(id ID) string { return filepath.Join(s.Dir(id), "instructions.jsonl") }
 func (s *Store) SupervisorLogPath(id ID) string {
 	return filepath.Join(s.Dir(id), "supervisor.log")

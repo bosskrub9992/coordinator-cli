@@ -23,10 +23,14 @@ func envMap(env []string) map[string]string {
 }
 
 func TestWorkerEnv(t *testing.T) {
+	sep := string(os.PathListSeparator)
 	bin := filepath.Join(t.TempDir(), "coord")
+	if runtime.GOOS == "windows" {
+		bin += ".exe"
+	}
 	os.WriteFile(bin, []byte("#!/bin/sh\n"), 0o755)
 	parent := []string{
-		"PATH=/usr/bin:/bin",
+		"PATH=/usr/bin" + sep + "/bin",
 		"HOME=/home/x",
 		"CLAUDECODE=1",
 		"CLAUDE_CODE_SESSION_ID=abc",
@@ -56,15 +60,15 @@ func TestWorkerEnv(t *testing.T) {
 		"COORD_ROLE": "worker", "COORD_TASK": "001-x", "COORD_HOME": "/h",
 		"CLAUDE_CODE_ADDITIONAL_DIRECTORIES_CLAUDE_MD": "1", "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "1",
 		"HOME": "/home/x", "ORCA_PANE_KEY": "p", "HERDR_X": "1", "CLAUDE_CODE_FORCE_SESSION_PERSISTENCE": "1",
-		"PATH": filepath.Dir(bin) + string(os.PathListSeparator) + "/usr/bin:/bin",
+		"PATH": filepath.Dir(bin) + sep + "/usr/bin" + sep + "/bin",
 	}
 	for k, v := range want {
 		if m[k] != v {
 			t.Errorf("%s = %q want %q", k, m[k], v)
 		}
 	}
-	m = envMap(WorkerEnv([]string{"PATH=" + filepath.Dir(bin) + ":/usr/bin"}, "/h", "001-x", bin))
-	if m["PATH"] != filepath.Dir(bin)+":/usr/bin" {
+	m = envMap(WorkerEnv([]string{"PATH=" + filepath.Dir(bin) + sep + "/usr/bin"}, "/h", "001-x", bin))
+	if m["PATH"] != filepath.Dir(bin)+sep+"/usr/bin" {
 		t.Errorf("PATH prepended twice: %s", m["PATH"])
 	}
 	if _, ok := envMap(SupervisorEnv(parent))["COORD_TOKEN"]; ok {
@@ -84,7 +88,7 @@ func TestGuard(t *testing.T) {
 		os.MkdirAll(d, 0o755)
 	}
 	os.Symlink(main, filepath.Join(wt, "escape"))
-	sc := GuardScope{Allow: []string{wt, folder}, Protected: []string{main, filepath.Join(root, "launch")}, Temp: []string{"/tmp"}}
+	sc := GuardScope{Allow: []string{wt, folder}, Protected: []string{main, filepath.Join(root, "launch")}, Temp: []string{filepath.Join(root, "scratch")}}
 	tests := []struct {
 		tool  string
 		input string
@@ -225,5 +229,75 @@ func TestPrepareTicketFolderInsideLaunch(t *testing.T) {
 	p := SystemPrompt(tk, task.WorkerRecord{})
 	if !strings.Contains(p, "LAUNCH-AGENTS") || strings.Contains(p, "LAUNCH-CLAUDE") {
 		t.Fatalf("prompt:\n%s", p)
+	}
+}
+
+func TestEnvFileScript(t *testing.T) {
+	if got := EnvFileScript("/opt/coord/bin", ""); got != "export PATH=/opt/coord/bin:\"$PATH\"\n" {
+		t.Fatalf("got %q", got)
+	}
+	if runtime.GOOS != "windows" {
+		return
+	}
+	got := EnvFileScript(`C:\Users\me\AppData\Local\Temp\coord-smoke.x\bin`, "")
+	want := "export PATH=/c/Users/me/AppData/Local/Temp/coord-smoke.x/bin:\"$PATH\"\n"
+	if got != want {
+		t.Fatalf("got %q want %q", got, want)
+	}
+	got = EnvFileScript(`C:\coord`, `D:\me\env.sh`)
+	want = ". /d/me/env.sh\nexport PATH=/c/coord:\"$PATH\"\n"
+	if got != want {
+		t.Fatalf("got %q want %q", got, want)
+	}
+}
+
+func TestWithEnvFile(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "env.sh")
+	bin := filepath.Join(dir, "bin", "coord")
+	base := []string{"A=1"}
+	if runtime.GOOS != "windows" {
+		got, err := WithEnvFile(base, path, bin)
+		if err != nil || len(got) != 1 || got[0] != "A=1" {
+			t.Fatalf("got %v %v", got, err)
+		}
+		if _, err := os.Stat(path); !os.IsNotExist(err) {
+			t.Fatalf("env file written on %s: %v", runtime.GOOS, err)
+		}
+		return
+	}
+	got, err := WithEnvFile(base, path, "")
+	if err != nil || len(got) != 1 {
+		t.Fatalf("empty coordBin: %v %v", got, err)
+	}
+	got, err = WithEnvFile(base, path, bin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if envMap(got)[EnvFileVar] != path || envMap(got)["A"] != "1" {
+		t.Fatalf("got %v", got)
+	}
+	b, _ := os.ReadFile(path)
+	if string(b) != EnvFileScript(filepath.Dir(bin), "") {
+		t.Fatalf("script %q", b)
+	}
+	inherited := filepath.Join(dir, "user-env.sh")
+	got, err = WithEnvFile([]string{EnvFileVar + "=" + inherited}, path, bin)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if envMap(got)[EnvFileVar] != path {
+		t.Fatalf("got %v", got)
+	}
+	b, _ = os.ReadFile(path)
+	if string(b) != EnvFileScript(filepath.Dir(bin), inherited) || !strings.HasPrefix(string(b), ". ") {
+		t.Fatalf("inherited not chained: %q", b)
+	}
+	if _, err := WithEnvFile([]string{EnvFileVar + "=" + strings.ToUpper(path)}, path, bin); err != nil {
+		t.Fatal(err)
+	}
+	b, _ = os.ReadFile(path)
+	if string(b) != EnvFileScript(filepath.Dir(bin), "") {
+		t.Fatalf("self-reference chained: %q", b)
 	}
 }

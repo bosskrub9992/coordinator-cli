@@ -6,7 +6,9 @@ import (
 )
 
 func main() {
-	if err := newRoot().Execute(); err != nil {
+	root := newRoot()
+	root.SetArgs(detachedArgs())
+	if err := root.Execute(); err != nil {
 		fmt.Fprintln(os.Stderr, "coord:", err)
 		os.Exit(1)
 	}

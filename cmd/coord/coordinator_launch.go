@@ -15,6 +15,7 @@ import (
 	"github.com/bosskrub9992/coordinator-cli/internal/harness"
 	"github.com/bosskrub9992/coordinator-cli/internal/home"
 	"github.com/bosskrub9992/coordinator-cli/internal/role"
+	"github.com/bosskrub9992/coordinator-cli/internal/supervise"
 	"github.com/spf13/cobra"
 )
 
@@ -40,6 +41,7 @@ type sessionRecord struct {
 func sessionPath(h home.Home) string  { return filepath.Join(h.CoordinatorRunDir(), "session.json") }
 func rolePath(h home.Home) string     { return filepath.Join(h.CoordinatorRunDir(), "role.md") }
 func settingsPath(h home.Home) string { return filepath.Join(h.CoordinatorRunDir(), "settings.json") }
+func envFilePath(h home.Home) string  { return filepath.Join(h.CoordinatorRunDir(), "env.sh") }
 
 func launch(a *app, cmd *cobra.Command, o launchOptions) error {
 	h := a.home
@@ -87,6 +89,10 @@ func launch(a *app, cmd *cobra.Command, o launchOptions) error {
 	if base := strings.TrimSuffix(filepath.Base(bin), ".exe"); base != "coord" {
 		fmt.Fprintf(cmd.ErrOrStderr(), "coord: warning: this binary is named %q, so `coord` in the Coordinator's shell may run another copy\n", base)
 	}
+	env, err := supervise.WithEnvFile(launchEnv(os.Environ(), h, lock.Token, bin), envFilePath(h), bin)
+	if err != nil {
+		return err
+	}
 	spec := harness.CoordinatorSpec{
 		LaunchFolder:   folder,
 		SessionID:      sessionID,
@@ -97,7 +103,7 @@ func launch(a *app, cmd *cobra.Command, o launchOptions) error {
 		MemoryDir:      h.MemoryDir(),
 		SettingsFile:   settingsPath(h),
 		PermissionMode: coordinator.DefaultPermissionMode,
-		Env:            launchEnv(os.Environ(), h, lock.Token, bin),
+		Env:            env,
 		Stdin:          cmd.InOrStdin(),
 		Stdout:         cmd.OutOrStdout(),
 		Stderr:         cmd.ErrOrStderr(),

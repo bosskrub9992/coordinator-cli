@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -16,7 +17,7 @@ import (
 )
 
 func TestMain(m *testing.M) {
-	if filepath.Base(os.Args[0]) == "claude" {
+	if strings.TrimSuffix(filepath.Base(os.Args[0]), ".exe") == "claude" {
 		os.Exit(fakeclaude.Main())
 	}
 	os.Exit(m.Run())
@@ -135,6 +136,17 @@ func fakeBin(t *testing.T) string {
 	t.Helper()
 	self, _ := filepath.Abs(os.Args[0])
 	bin := filepath.Join(t.TempDir(), "claude")
+	if runtime.GOOS == "windows" {
+		bin += ".exe"
+		raw, err := os.ReadFile(self)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(bin, raw, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		return bin
+	}
 	if err := os.Symlink(self, bin); err != nil {
 		t.Fatal(err)
 	}

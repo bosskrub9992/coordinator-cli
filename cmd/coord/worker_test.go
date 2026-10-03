@@ -24,7 +24,7 @@ func TestMain(m *testing.M) {
 	if filepath.Base(os.Args[0]) == "claude" {
 		os.Exit(fakeclaude.Main())
 	}
-	if os.Getenv(envTestMain) == "1" {
+	if os.Getenv(envTestMain) == "1" || (len(os.Args) == 3 && os.Args[1] == detachedArg) {
 		watcherStarter = func(*app) error { return nil }
 		notifier = &fakeNotifier{}
 		main()
@@ -59,17 +59,10 @@ func newWorkerRig(t *testing.T, pool bool) *workerRig {
 	}
 	h := setup(t)
 	root, _ := filepath.EvalSymlinks(t.TempDir())
-	self, err := filepath.Abs(os.Args[0])
-	if err != nil {
-		t.Fatal(err)
-	}
 	bin := filepath.Join(root, "bin")
 	os.MkdirAll(bin, 0o755)
-	for _, name := range []string{"claude", "coord"} {
-		if err := os.Symlink(self, filepath.Join(bin, name)); err != nil {
-			t.Fatal(err)
-		}
-	}
+	linkSelf(t, bin, "claude")
+	coordBin := linkSelf(t, bin, "coord")
 	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
 	t.Setenv(envTestMain, "1")
 	t.Setenv("GIT_CONFIG_GLOBAL", os.DevNull)
@@ -94,7 +87,7 @@ func newWorkerRig(t *testing.T, pool bool) *workerRig {
 	}
 	t.Setenv(fakeclaude.EnvRecording, recording)
 	old := coordExecutable
-	coordExecutable = func() (string, error) { return filepath.Join(bin, "coord"), nil }
+	coordExecutable = func() (string, error) { return coordBin, nil }
 	t.Cleanup(func() { coordExecutable = old })
 
 	origin := filepath.Join(root, "origin.git")
@@ -110,7 +103,7 @@ func newWorkerRig(t *testing.T, pool bool) *workerRig {
 	}
 	runGit(t, repo, "add", ".")
 	runGit(t, repo, "commit", "-q", "-m", "init")
-	runGit(t, repo, "remote", "add", "origin", "file://localhost"+filepath.ToSlash(origin))
+	addOrigin(t, repo, origin)
 	runGit(t, repo, "push", "-q", "origin", "main")
 	r := &workerRig{t: t, home: h, repo: repo, origin: origin, trace: trace}
 	if out, err := coord(t, "", "project", "add", repo, "--name", "repo"); err != nil {
@@ -309,7 +302,8 @@ func TestSpawnShipEndToEnd(t *testing.T) {
 		t.Fatalf("exit events %+v", ex)
 	}
 	il := r.events(id, task.EventInstructionsLoaded)
-	if len(il) != 1 || !strings.Contains(string(il[0].Data), filepath.Join(wt, "CLAUDE.md")) {
+	wantFile, _ := json.Marshal(filepath.Join(wt, "CLAUDE.md"))
+	if len(il) != 1 || !strings.Contains(string(il[0].Data), strings.Trim(string(wantFile), `"`)) {
 		t.Fatalf("instructions events %+v", il)
 	}
 	prompt, _ := os.ReadFile(s.SystemPromptPath(id))

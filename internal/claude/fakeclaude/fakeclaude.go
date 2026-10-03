@@ -403,7 +403,11 @@ func (f *fake) bash(command string) bool {
 		f.toolResult(id, notGranted("Bash"), true)
 		return true
 	}
-	c := exec.Command("sh", "-c", command)
+	shellCommand := command
+	for _, d := range f.a.addDirs {
+		shellCommand = strings.ReplaceAll(shellCommand, d, filepath.ToSlash(d))
+	}
+	c := exec.Command("sh", "-c", shellCommand)
 	c.Dir = f.cwd
 	out, err := c.CombinedOutput()
 	f.toolResult(id, string(out), err != nil)

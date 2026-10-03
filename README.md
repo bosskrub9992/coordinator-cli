@@ -12,7 +12,7 @@ Vocabulary: [CONTEXT.md](CONTEXT.md). Design decisions: [docs/adr/](docs/adr/). 
 - [Claude Code](https://docs.claude.com/en/docs/claude-code) (`claude` on PATH)
 - [treehouse](https://github.com/kunchenguid/treehouse) for worktrees, with a `treehouse.toml` in each Project's main checkout
 - `glab` and/or `gh`, logged in, for MR watching
-- macOS, Linux, or Windows with Git Bash
+- macOS, Linux, or Windows with Git Bash ([Windows notes](docs/windows.md))
 
 ## Install
 

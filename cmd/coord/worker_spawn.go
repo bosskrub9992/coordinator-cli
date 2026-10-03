@@ -7,7 +7,6 @@ import (
 	"io"
 	"log"
 	"os"
-	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"slices"
@@ -203,21 +202,10 @@ func keepLease(recorded []task.Worktree, got task.Worktree) error {
 
 func startSupervisor(a *app, bin string, id task.ID) error {
 	s := a.tasks()
-	logf, err := os.OpenFile(s.SupervisorLogPath(id), os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o644)
+	pid, err := startDetached(detachSpec{Bin: bin, Args: []string{"_supervise", string(id)}, Dir: a.home.Root, Env: supervise.SupervisorEnv(os.Environ()), Log: s.SupervisorLogPath(id)})
 	if err != nil {
-		return err
-	}
-	defer logf.Close()
-	c := exec.Command(bin, "_supervise", string(id))
-	c.Dir = a.home.Root
-	c.Env = supervise.SupervisorEnv(os.Environ())
-	c.Stdout = logf
-	c.Stderr = logf
-	detach(c)
-	if err := c.Start(); err != nil {
 		return fmt.Errorf("start the supervisor: %w", err)
 	}
-	pid := c.Process.Pid
 	if _, err := s.UpdateWorker(id, func(w *task.WorkerRecord) error {
 		if !w.SupervisorLive() {
 			w.SupervisorPID = pid
@@ -227,7 +215,7 @@ func startSupervisor(a *app, bin string, id task.ID) error {
 	}); err != nil {
 		return fmt.Errorf("record the supervisor: %w", err)
 	}
-	return c.Process.Release()
+	return nil
 }
 
 func newSuperviseCmd(a *app) *cobra.Command {

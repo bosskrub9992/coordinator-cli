@@ -23,6 +23,7 @@ func TestParseRemote(t *testing.T) {
 		{"https://user:pw@gitlab.com/group/sub/repo", CodeHost{GitLab, "gitlab.com", "group/sub/repo"}, false},
 		{"git@github.com:owner/repo", CodeHost{GitHub, "github.com", "owner/repo"}, false},
 		{"git@GitHub.example.com:owner/repo.git/", CodeHost{GitHub, "github.example.com", "owner/repo"}, false},
+		{"file:///C:/tmp/origin.git", CodeHost{GitLab, "localhost", "C:/tmp/origin"}, false},
 		{"/local/path/repo", CodeHost{}, true},
 		{"https://host-only", CodeHost{}, true},
 	}

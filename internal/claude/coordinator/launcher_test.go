@@ -85,10 +85,10 @@ func TestArgs(t *testing.T) {
 					t.Errorf("%s present in %q", flag, args)
 				}
 			}
-			if got := flagValues(args, "--append-system-prompt-file"); !slices.Equal(got, []string{"/work/role.md"}) {
+			if got := flagValues(args, "--append-system-prompt-file"); !slices.Equal(got, []string{filepath.Join("/work", "role.md")}) {
 				t.Errorf("role file %q", got)
 			}
-			if got := flagValues(args, "--settings"); !slices.Equal(got, []string{"/work/settings.json"}) {
+			if got := flagValues(args, "--settings"); !slices.Equal(got, []string{filepath.Join("/work", "settings.json")}) {
 				t.Errorf("settings %q", got)
 			}
 			deny := flagValues(args, "--disallowedTools")

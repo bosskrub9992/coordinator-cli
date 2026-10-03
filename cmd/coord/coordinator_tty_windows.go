@@ -21,6 +21,10 @@ func ttyFile(f *os.File) bool {
 }
 
 func processTerminal() bool {
+	if f, err := os.OpenFile("CONIN$", os.O_RDWR, 0); err == nil {
+		f.Close()
+		return true
+	}
 	return slices.ContainsFunc([]*os.File{os.Stdin, os.Stdout, os.Stderr}, func(f *os.File) bool { return f != nil && ttyFile(f) })
 }
 
