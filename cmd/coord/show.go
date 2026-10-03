@@ -18,7 +18,7 @@ func newShowCmd(a *app) *cobra.Command {
 		Use:   "show <task> [--brief|--report|--question]",
 		Short: "Show one Task: state, class, Projects, worktrees, MRs, then its Report or pending question (read-only)",
 		Long: "Show one Task: its state, class, Projects, Task folder, worktrees and branches, MRs (state, CI, approval,\n" +
-			"comments since the last coord ack), and what ran, followed by\n" +
+			"comments since the last coord ack), what ran, and the commands that move it on from its state (Next), followed by\n" +
 			"the pending question when the Worker is blocked or needs a decision, otherwise the Report once there is one.\n" +
 			"--brief, --report or --question prints only that text.",
 		Args: cobra.ExactArgs(1),
@@ -147,6 +147,13 @@ func printTask(w io.Writer, s *task.Store, t task.Task, now time.Time) error {
 	}
 	if rec.SessionID != "" {
 		fmt.Fprintf(w, "Session:     %s\n", rec.SessionID)
+	}
+	for i, m := range t.Moves() {
+		label := "Next:"
+		if i > 0 {
+			label = ""
+		}
+		fmt.Fprintf(w, "%-13s%s: %s\n", label, m.For(t.ID), m.When)
 	}
 	if q, ok, err := pendingQuestion(s, t); err != nil {
 		return err

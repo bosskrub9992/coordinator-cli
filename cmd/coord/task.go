@@ -39,7 +39,8 @@ func newTaskNewCmd(a *app) *cobra.Command {
 		Long: "Create a queued Task. The Brief is read from stdin (--brief -) or from a file (--brief <path>).\n" +
 			"Repeat --project for a Task across several Projects; the first is the primary one, whose config picks the model,\n" +
 			"effort and plan approval. coord spawn leases one worktree per Project.\n" +
-			"The Task folder is the ticket folder inside the Launch folder when --ticket matches one (or --ticket-folder names one),\n" +
+			"The Worker starts in the Task folder: the folder --ticket-folder names (any relative path inside the Launch folder,\n" +
+			"created if missing), else the Launch folder's direct child that --ticket matches (named PROJ-123 or PROJ-123-...),\n" +
 			"otherwise <Home>/tasks/<id>/work. --model must be in coordinator_may_choose and not in forbidden_models.",
 		Example: "  coord task new --project api --class ship --title \"Fix login timeout\" --ticket PROJ-1234 --brief - <<'EOF'\n  ...Brief...\n  EOF",
 		Args:    cobra.NoArgs,
@@ -104,7 +105,7 @@ func newTaskNewCmd(a *app) *cobra.Command {
 	f.StringVar(&title, "title", "", "short Task title; becomes the id slug (required)")
 	f.StringVar(&brief, "brief", "", "Brief source: - for stdin, or a file path (required)")
 	f.StringVar(&ticket, "ticket", "", "ticket key such as PROJ-1234")
-	f.StringVar(&ticketFolder, "ticket-folder", "", "ticket folder name inside the Launch folder")
+	f.StringVar(&ticketFolder, "ticket-folder", "", "the Task folder: a relative path inside the Launch folder, created if missing")
 	f.StringVar(&model, "model", "", "model override")
 	f.StringVar(&effort, "effort", "", "effort override: low, medium, high, xhigh, max")
 	f.StringVar(&harnessName, "harness", "", "harness override")

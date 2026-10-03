@@ -226,6 +226,52 @@ func TestStateTableConsistent(t *testing.T) {
 	}
 }
 
+func TestMovesFollowStateClassAndQuestion(t *testing.T) {
+	cmds := func(tk Task) string {
+		var out []string
+		for _, m := range tk.Moves() {
+			out = append(out, m.For(tk.ID))
+		}
+		return strings.Join(out, " | ")
+	}
+	tests := []struct {
+		task Task
+		want string
+	}{
+		{Task{ID: "001", State: Queued, Class: config.Ship}, "coord spawn 001 | coord drop 001"},
+		{Task{ID: "001", State: Reported, Class: config.Scout}, "coord land 001 | coord steer 001 <message> | coord drop 001"},
+		{Task{ID: "001", State: Reported, Class: config.Ship}, "coord land 001 | coord steer 001 <message> | coord task add-mr 001 <url> | coord drop 001"},
+		{Task{ID: "001", State: NeedsDecision, Class: config.Ship, QuestionFrom: QuestionFromWorker}, "coord steer 001 <answer> | coord drop 001"},
+		{Task{ID: "001", State: NeedsDecision, Class: config.Ship, QuestionFrom: QuestionFromWatcher}, "coord steer 001 <message> | coord ack 001 | coord merge 001 | coord drop 001"},
+		{Task{ID: "001", State: Failed, Class: config.Scout}, "coord steer 001 <message> | coord drop 001"},
+		{Task{ID: "001", State: Landed, Class: config.Ship}, ""},
+	}
+	for _, tt := range tests {
+		if got := cmds(tt.task); got != tt.want {
+			t.Errorf("%s %s (%s): %q, want %q", tt.task.State, tt.task.Class, tt.task.QuestionFrom, got, tt.want)
+		}
+	}
+	if h := (Task{ID: "001", State: Failed, Class: config.Scout}).NextHint(); h != "Task 001 is failed; from here: `coord steer 001 <message>`, `coord drop 001`" {
+		t.Errorf("hint %q", h)
+	}
+}
+
+func TestEveryMoveLeadsWhereTheStateCanGo(t *testing.T) {
+	for _, i := range States() {
+		if i.Terminal != (len(i.Moves) == 0) {
+			t.Errorf("%s: terminal %v with %d moves", i.State, i.Terminal, len(i.Moves))
+		}
+		for _, m := range i.Moves {
+			if m.Verb() == "" || m.When == "" {
+				t.Errorf("%s: move %+v", i.State, m)
+			}
+			if m.Verb() == "land" && !CanTransition(i.State, Landed) {
+				t.Errorf("%s offers land but cannot go to landed", i.State)
+			}
+		}
+	}
+}
+
 func TestReportWrite(t *testing.T) {
 	s, launch := newStore(t)
 	tk := create(t, s, launch, "scout it")

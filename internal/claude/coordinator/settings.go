@@ -9,6 +9,8 @@ const StopHookTimeout = 10
 
 const GuardTimeout = 10
 
+const SessionStartTimeout = 10
+
 const GuardMatcher = "Edit|Write|MultiEdit"
 
 type Settings struct {
@@ -39,8 +41,9 @@ func BuildSettings(coordBin, memoryDir string) Settings {
 		AutoMemoryDirectory: memoryDir,
 		StatusLine:          StatusLine{Type: "command", Command: bin + " _statusline"},
 		Hooks: map[string][]HookGroup{
-			"Stop":       {{Hooks: []Hook{{Type: "command", Command: bin + " _stop-hook", Timeout: StopHookTimeout}}}},
-			"PreToolUse": {{Matcher: GuardMatcher, Hooks: []Hook{{Type: "command", Command: bin + " _coordinator-guard", Timeout: GuardTimeout}}}},
+			"Stop":         {{Hooks: []Hook{{Type: "command", Command: bin + " _stop-hook", Timeout: StopHookTimeout}}}},
+			"SessionStart": {{Hooks: []Hook{{Type: "command", Command: bin + " _session-start", Timeout: SessionStartTimeout}}}},
+			"PreToolUse":   {{Matcher: GuardMatcher, Hooks: []Hook{{Type: "command", Command: bin + " _coordinator-guard", Timeout: GuardTimeout}}}},
 		},
 	}
 }

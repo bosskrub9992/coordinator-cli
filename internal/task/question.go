@@ -159,11 +159,11 @@ func (s *Store) Ack(id ID, note string) (Task, error) {
 		switch t.State {
 		case NeedsDecision:
 			if t.QuestionFrom != QuestionFromWatcher {
-				return fmt.Errorf("Task %s's pending question is the Worker's own; answer it with coord steer %s <message>", id, id)
+				return fmt.Errorf("Task %s's pending question is the Worker's own; answer it with coord steer %s <answer>", id, id)
 			}
 		case WaitingReview, Merged, Reported:
 		default:
-			return fmt.Errorf("Task %s is %s; coord ack is for a Task waiting on its MRs or holding the watcher's question", id, t.State)
+			return fmt.Errorf("coord ack is for a Task waiting on its MRs or holding the watcher's question. %s", t.NextHint())
 		}
 		if _, err := s.UpdateMRFile(id, func(f *MRFile) error {
 			f.Asks = nil

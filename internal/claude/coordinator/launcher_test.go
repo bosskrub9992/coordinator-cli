@@ -246,6 +246,10 @@ func TestSettings(t *testing.T) {
 		if len(stop) != 1 || len(stop[0].Hooks) != 1 || stop[0].Hooks[0].Command != tt.wantCmd+" _stop-hook" || stop[0].Hooks[0].Timeout != 10 || stop[0].Hooks[0].Type != "command" {
 			t.Errorf("Stop hook %s", data)
 		}
+		start := got.Hooks["SessionStart"]
+		if len(start) != 1 || len(start[0].Hooks) != 1 || start[0].Hooks[0].Command != tt.wantCmd+" _session-start" || start[0].Hooks[0].Timeout != 10 {
+			t.Errorf("SessionStart hook %s", data)
+		}
 		guard := got.Hooks["PreToolUse"]
 		if len(guard) != 1 || guard[0].Matcher != "Edit|Write|MultiEdit" || len(guard[0].Hooks) != 1 || guard[0].Hooks[0].Command != tt.wantCmd+" _coordinator-guard" || guard[0].Hooks[0].Type != "command" {
 			t.Errorf("PreToolUse guard %s", data)
