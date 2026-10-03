@@ -68,7 +68,7 @@ func fakeGHRepo(t *testing.T, dir, log, repoJSON string, failMerge bool) string 
 	t.Helper()
 	if runtime.GOOS == "windows" {
 		script := "@echo off\r\n>>\"" + log + "\" echo gh %*\r\n" +
-			"if \"%1\"==\"api\" (\r\n  echo " + repoJSON + "\r\n  exit /b 0\r\n)\r\n"
+			"if \"%1\"==\"repo\" (\r\n  echo " + repoJSON + "\r\n  exit /b 0\r\n)\r\n"
 		if failMerge {
 			script += "echo Pull request is not mergeable 1>&2\r\nexit /b 1\r\n"
 		}
@@ -79,7 +79,7 @@ func fakeGHRepo(t *testing.T, dir, log, repoJSON string, failMerge bool) string 
 		return p
 	}
 	script := "#!/bin/sh\necho \"gh $*\" >> " + log + "\n" +
-		"case \"$1\" in api) echo '" + repoJSON + "'; exit 0;; esac\n"
+		"case \"$1\" in repo) echo '" + repoJSON + "'; exit 0;; esac\n"
 	if failMerge {
 		script += "echo 'Pull request is not mergeable' >&2\nexit 1\n"
 	}
@@ -102,10 +102,10 @@ func TestMergerResolveAndMerge(t *testing.T) {
 		methods []Method
 		err     string
 	}{
-		{"only squash", `{"allow_merge_commit":false,"allow_squash_merge":true,"allow_rebase_merge":false}`, MethodAuto, []Ref{a, b, g}, []Method{MethodSquash, MethodSquash, MethodAuto}, ""},
-		{"only merge", `{"allow_merge_commit":true,"allow_squash_merge":false,"allow_rebase_merge":false}`, MethodAuto, []Ref{a}, []Method{MethodMerge}, ""},
-		{"several", `{"allow_merge_commit":true,"allow_squash_merge":true,"allow_rebase_merge":false}`, MethodAuto, []Ref{a}, nil, "merge, squash"},
-		{"none", `{}`, MethodAuto, []Ref{a}, nil, "allows no merge method"},
+		{"only squash", `{"mergeCommitAllowed":false,"squashMergeAllowed":true,"rebaseMergeAllowed":false}`, MethodAuto, []Ref{a, b, g}, []Method{MethodSquash, MethodSquash, MethodAuto}, ""},
+		{"only merge", `{"mergeCommitAllowed":true,"squashMergeAllowed":false,"rebaseMergeAllowed":false}`, MethodAuto, []Ref{a}, []Method{MethodMerge}, ""},
+		{"several", `{"mergeCommitAllowed":true,"squashMergeAllowed":true,"rebaseMergeAllowed":false}`, MethodAuto, []Ref{a}, nil, "merge, squash"},
+		{"none", `{}`, MethodAuto, []Ref{a}, nil, "could not be read"},
 		{"explicit skips the lookup", `{}`, MethodRebase, []Ref{a, g}, []Method{MethodRebase, MethodRebase}, ""},
 	}
 	for _, c := range cases {
@@ -131,7 +131,7 @@ func TestMergerResolveAndMerge(t *testing.T) {
 			}
 		}
 		out, _ := os.ReadFile(log)
-		lookups := strings.Count(string(out), "api --hostname github.com --method GET repos/o/a")
+		lookups := strings.Count(string(out), "repo view github.com/o/a --json mergeCommitAllowed,squashMergeAllowed,rebaseMergeAllowed")
 		if c.want == MethodAuto && lookups != 1 || c.want != MethodAuto && lookups != 0 {
 			t.Errorf("%s: %d repo lookups:\n%s", c.name, lookups, out)
 		}

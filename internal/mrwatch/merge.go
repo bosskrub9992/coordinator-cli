@@ -3,6 +3,7 @@ package mrwatch
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os/exec"
@@ -41,9 +42,9 @@ type Merger struct {
 }
 
 type githubRepo struct {
-	AllowMergeCommit bool `json:"allow_merge_commit"`
-	AllowSquashMerge bool `json:"allow_squash_merge"`
-	AllowRebaseMerge bool `json:"allow_rebase_merge"`
+	AllowMergeCommit bool `json:"mergeCommitAllowed"`
+	AllowSquashMerge bool `json:"squashMergeAllowed"`
+	AllowRebaseMerge bool `json:"rebaseMergeAllowed"`
 }
 
 func (g githubRepo) allowed() []Method {
@@ -64,9 +65,27 @@ func (m Merger) AllowedMethods(ctx context.Context, r Ref) ([]Method, error) {
 	if r.Kind != GitHub {
 		return nil, fmt.Errorf("%s: the allowed merge methods are only read for GitHub repositories", r.URL)
 	}
-	a := api{name: "gh", bin: m.GH, env: m.Env}
+	bin := orDefault(m.GH, "gh")
+	args := []string{"repo", "view", r.RepoKey(), "--json", "mergeCommitAllowed,squashMergeAllowed,rebaseMergeAllowed"}
+	cmd := exec.CommandContext(ctx, bin, args...)
+	if m.Env != nil {
+		cmd.Env = m.Env
+	}
+	var stderr bytes.Buffer
+	cmd.Stderr = &stderr
+	out, err := cmd.Output()
+	if err != nil {
+		if errors.Is(err, exec.ErrNotFound) {
+			return nil, fmt.Errorf("read the merge methods %s allows: %s is not installed (or not on PATH): %w", r.RepoKey(), bin, err)
+		}
+		msg := strings.TrimSpace(stderr.String())
+		if msg == "" {
+			msg = err.Error()
+		}
+		return nil, fmt.Errorf("read the merge methods %s allows: %s %s: %s", r.RepoKey(), bin, strings.Join(args, " "), msg)
+	}
 	var repo githubRepo
-	if err := a.object(ctx, r.Host, "repos/"+r.Repo, &repo); err != nil {
+	if err := json.Unmarshal(out, &repo); err != nil {
 		return nil, fmt.Errorf("read the merge methods %s allows: %w", r.RepoKey(), err)
 	}
 	return repo.allowed(), nil
@@ -93,7 +112,7 @@ func (m Merger) Resolve(ctx context.Context, refs []Ref, want Method) ([]Method,
 		case 1:
 			out[i] = methods[0]
 		case 0:
-			return nil, fmt.Errorf("%s allows no merge method; nothing was merged", key)
+			return nil, fmt.Errorf("the merge methods %s allows could not be read (it reported none); nothing was merged; pass --method", key)
 		default:
 			names := make([]string, len(methods))
 			for j, x := range methods {

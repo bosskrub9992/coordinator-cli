@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/bosskrub9992/coordinator-cli/internal/config"
@@ -22,24 +23,36 @@ func newMergeCmd(a *app) *cobra.Command {
 	var method string
 	cmd := &cobra.Command{
 		Use:   "merge <task> [--mr <url>]... [--method merge|squash|rebase]",
-		Short: "Merge a ship Task's open MRs in the order they were linked (on the Captain's word)",
-		Long: "Merge a ship Task's open MRs with gh or glab, only on the Captain's word. The MRs go in the order they were\n" +
-			"linked (the order of coord report --mr and coord task add-mr); --mr limits the merge to the given MRs, in the\n" +
-			"order given. MRs already merged or closed are skipped. coord stops at the first MR that fails to merge, reports\n" +
-			"what merged before it and the error, and leaves the rest untouched.\n" +
+		Short: "Merge a ship Task's open MRs in the order its Worker reported them (on the Captain's word)",
+		Long: "Merge a ship Task's open MRs with gh or glab, only on the Captain's word. Allowed for a ship Task that is\n" +
+			"waiting-review, or needs-decision holding the watcher's facts, once its Worker has exited.\n" +
+			"\n" +
+			"Without --mr, coord merges the open MRs the Worker reported, in the order of its latest report. MRs linked by\n" +
+			"coord task add-mr are left open and listed; if the Worker has no open MR but linked ones are open, coord refuses\n" +
+			"and names them. --mr merges exactly the given MRs, in the order given, and may name any MR linked to the Task.\n" +
+			"MRs already merged or closed are skipped.\n" +
+			"\n" +
+			"coord stops at the first MR that fails to merge, reports what merged before it and the error, and leaves the\n" +
+			"rest untouched. After each merge coord reads the MR's real state. If an MR is still open (a merge queue or\n" +
+			"similar) or its state cannot be read, coord stops there with an error, leaves the rest untouched, and you run\n" +
+			"coord merge <task> again once it has merged. The Task then settles as the watcher would (all MRs merged:\n" +
+			"merged; otherwise waiting-review); the watcher's facts about the merged MRs are cleared, facts about other MRs\n" +
+			"stay and keep the Task in needs-decision.\n" +
 			"\n" +
 			"The method is --method when given. On GitHub, without --method, coord reads the repository's allowed methods\n" +
-			"and uses the only one it allows; if it allows several, nothing is merged until you pass --method as the SOP or\n" +
-			"the Captain says. On GitLab, without --method, the project's own merge method decides.\n" +
+			"and uses the only one it allows; if it allows several or none can be read, nothing is merged until you pass\n" +
+			"--method as the SOP or the Captain says. On GitLab, without --method, the project's own merge method decides.\n" +
 			"\n" +
-			"Refused: a Task that is not a ship Task, is queued or is terminal; a Task whose Worker is still running (stop\n" +
-			"it or wait for it to exit); a Task with no open MRs; an --mr that is not linked to the Task (link it with\n" +
-			"coord task add-mr). Branches are never deleted and nothing is force-merged: no admin override, no auto-merge.\n" +
-			"After each merge coord reads the MR's real state; the Task then settles as the watcher would (all MRs merged:\n" +
-			"merged; otherwise waiting-review), and the watcher's question, if the Task held one, is cleared as coord ack does.",
+			"Refused: a Task that is not a ship Task or whose state has no merge move; a Task whose Worker is still\n" +
+			"running; a Task with no open MRs to merge; an --mr that is not linked to the Task (link it with coord task\n" +
+			"add-mr). coord never asks for branch deletion, an admin override or auto-merge; the host's own settings may\n" +
+			"still delete a branch or queue the merge.",
 		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			s := a.tasks()
+			if _, err := s.ReapLostSupervisors(); err != nil {
+				return err
+			}
 			t, err := s.Find(args[0])
 			if err != nil {
 				return err
@@ -48,7 +61,7 @@ func newMergeCmd(a *app) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			todo, err := mergeTargets(s, t, urls)
+			todo, left, err := mergeTargets(s, t, urls)
 			if err != nil {
 				return err
 			}
@@ -60,20 +73,24 @@ func newMergeCmd(a *app) *cobra.Command {
 			if err != nil {
 				return fmt.Errorf("Task %s: %w", t.ID, err)
 			}
-			var merged []string
+			var merged []mrwatch.Ref
 			var failure error
 			for i, m := range todo {
 				if failure = mergeOne(cmd, s, t.ID, m.Ref, methods[i]); failure != nil {
 					break
 				}
-				merged = append(merged, m.Ref.URL)
+				merged = append(merged, m.Ref)
 			}
 			if len(merged) > 0 {
-				if err := settleAfterMerge(s, t.ID); err != nil {
+				if _, err := s.ResolveAsks(t.ID, merged, task.MergeNote); err != nil {
 					return err
 				}
 			}
 			watchAfter(a, cmd)
+			out := cmd.OutOrStdout()
+			for _, m := range left {
+				fmt.Fprintf(out, "left open: %s (linked; pass --mr to merge it)\n", m.Ref.URL)
+			}
 			if failure != nil {
 				return mergeFailure(t.ID, merged, todo[len(merged):], failure)
 			}
@@ -81,68 +98,77 @@ func newMergeCmd(a *app) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			fmt.Fprintf(cmd.OutOrStdout(), "Task %s is %s.\n", t.ID, t.State)
+			fmt.Fprintf(out, "Task %s is %s.\n", t.ID, t.State)
 			return nil
 		},
 	}
-	cmd.Flags().StringArrayVar(&urls, "mr", nil, "merge only this MR/PR (repeatable; merged in the order given)")
+	cmd.Flags().StringArrayVar(&urls, "mr", nil, "merge only this MR/PR (repeatable; merged in the order given; may be a linked MR)")
 	cmd.Flags().StringVar(&method, "method", "", "merge method: merge, squash or rebase (default: the only method a GitHub repo allows, or the GitLab project's own)")
 	return cmd
 }
 
-func mergeTargets(s *task.Store, t task.Task, urls []string) ([]task.MR, error) {
+func mergeTargets(s *task.Store, t task.Task, urls []string) ([]task.MR, []task.MR, error) {
 	if t.Class != config.Ship {
-		return nil, fmt.Errorf("Task %s is a %s Task; only ship Tasks have MRs to merge", t.ID, t.Class)
+		return nil, nil, fmt.Errorf("Task %s is a %s Task; only ship Tasks have MRs to merge", t.ID, t.Class)
 	}
 	if t.State.Terminal() {
-		return nil, fmt.Errorf("Task %s is already %s", t.ID, t.State)
+		return nil, nil, fmt.Errorf("Task %s is already %s", t.ID, t.State)
 	}
-	if t.State == task.Queued {
-		return nil, fmt.Errorf("Task %s is queued; no Worker has started on it, so it has no MRs", t.ID)
+	if !slices.ContainsFunc(t.Moves(), func(m task.Move) bool { return m.Verb() == "merge" }) {
+		return nil, nil, fmt.Errorf("coord merge is for a ship Task waiting on its MRs or holding the watcher's facts. %s", t.NextHint())
 	}
 	w, err := s.Worker(t.ID)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if w.SupervisorLive() {
-		return nil, fmt.Errorf("Task %s's Worker is still running; stop it (coord stop %s) or wait for it to exit, then merge", t.ID, t.ID)
+		return nil, nil, fmt.Errorf("Task %s's Worker is still running; wait for it to exit, then merge", t.ID)
 	}
 	mrs, err := s.MRs(t.ID)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	var picked []task.MR
+	var picked, left []task.MR
 	if len(urls) == 0 {
-		picked = mrs
+		for _, m := range mrs {
+			switch {
+			case !m.Open():
+			case m.Source == task.MRFromWorker:
+				picked = append(picked, m)
+			default:
+				left = append(left, m)
+			}
+		}
+		if len(picked) == 0 && len(left) > 0 {
+			var names []string
+			for _, m := range left {
+				names = append(names, m.Ref.URL)
+			}
+			return nil, nil, fmt.Errorf("Task %s has no open MR from its Worker; its linked MRs are open: %s; pass --mr to merge them", t.ID, strings.Join(names, ", "))
+		}
 	}
 	for _, u := range urls {
 		ref, err := mrwatch.ParseURL(u)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		found := false
 		for _, m := range mrs {
 			if strings.EqualFold(m.Ref.RepoKey(), ref.RepoKey()) && m.Ref.Number == ref.Number {
 				found = true
-				if !containsMR(picked, m) {
+				if m.Open() && !containsMR(picked, m) {
 					picked = append(picked, m)
 				}
 			}
 		}
 		if !found {
-			return nil, fmt.Errorf("%s is not linked to Task %s; link it first with coord task add-mr %s %s", u, t.ID, t.ID, u)
+			return nil, nil, fmt.Errorf("%s is not linked to Task %s; link it first with coord task add-mr %s %s", u, t.ID, t.ID, u)
 		}
 	}
-	var open []task.MR
-	for _, m := range picked {
-		if m.Open() {
-			open = append(open, m)
-		}
+	if len(picked) == 0 {
+		return nil, nil, fmt.Errorf("Task %s has no open MRs to merge", t.ID)
 	}
-	if len(open) == 0 {
-		return nil, fmt.Errorf("Task %s has no open MRs to merge", t.ID)
-	}
-	return open, nil
+	return picked, left, nil
 }
 
 func containsMR(mrs []task.MR, m task.MR) bool {
@@ -160,19 +186,16 @@ func mergeOne(cmd *cobra.Command, s *task.Store, id task.ID, ref mrwatch.Ref, me
 	}
 	out := cmd.OutOrStdout()
 	state, err := fetchMRState(cmd.Context(), ref)
-	if err != nil {
-		if _, err := s.Append(id, task.Event{Type: task.EventNote, Text: fmt.Sprintf("merge of %s requested (coord merge, %s); its state could not be read, the watcher will report it", ref.URL, method.Label())}); err != nil {
+	if err != nil || state != mrwatch.Merged {
+		reason := fmt.Sprintf("it is still %s", state)
+		if err != nil {
+			reason = fmt.Sprintf("its state could not be read: %v", err)
+		}
+		if _, err := s.Append(id, task.Event{Type: task.EventMerged, Text: fmt.Sprintf("merge of %s requested (coord merge, %s); not confirmed, %s", ref.URL, method.Label(), reason)}); err != nil {
 			return err
 		}
-		fmt.Fprintf(out, "Merge of %s was requested but its state could not be read (%v); the watcher will report it.\n", ref.URL, err)
-		return nil
-	}
-	if state != mrwatch.Merged {
-		if _, err := s.Append(id, task.Event{Type: task.EventNote, Text: fmt.Sprintf("merge of %s requested (coord merge, %s); it is still %s", ref.URL, method.Label(), state)}); err != nil {
-			return err
-		}
-		fmt.Fprintf(out, "Merge of %s was requested; it is still %s (a merge queue or similar), and the watcher will report when it merges.\n", ref.URL, state)
-		return nil
+		fmt.Fprintf(out, "Merge of %s was requested and is pending: %s.\n", ref.URL, reason)
+		return fmt.Errorf("the merge was requested but is not confirmed (%s); run coord merge %s again once it has merged", reason, id)
 	}
 	if _, err := s.UpdateMRs(id, func(all *[]task.MR) error {
 		for i := range *all {
@@ -184,7 +207,7 @@ func mergeOne(cmd *cobra.Command, s *task.Store, id task.ID, ref mrwatch.Ref, me
 	}); err != nil {
 		return err
 	}
-	if _, err := s.Append(id, task.Event{Type: task.EventNote, Text: fmt.Sprintf("merged %s (coord merge, %s)", ref.URL, method.Label())}); err != nil {
+	if _, err := s.Append(id, task.Event{Type: task.EventMerged, Text: fmt.Sprintf("merged %s (coord merge, %s)", ref.URL, method.Label())}); err != nil {
 		return err
 	}
 	fmt.Fprintf(out, "Merged %s\n", ref.URL)
@@ -205,23 +228,14 @@ func fetchMRState(ctx context.Context, ref mrwatch.Ref) (mrwatch.State, error) {
 	return snap.State, nil
 }
 
-func settleAfterMerge(s *task.Store, id task.ID) error {
-	t, err := s.Get(id)
-	if err != nil {
-		return err
-	}
-	if t.State == task.NeedsDecision && t.QuestionFrom == task.QuestionFromWatcher {
-		_, err = s.Ack(id, "MR facts handled by the Captain's merge word (coord merge)")
-		return err
-	}
-	_, err = s.Settle(id, "")
-	return err
-}
-
-func mergeFailure(id task.ID, merged []string, rest []task.MR, cause error) error {
+func mergeFailure(id task.ID, merged []mrwatch.Ref, rest []task.MR, cause error) error {
 	before := "nothing was merged before it"
 	if len(merged) > 0 {
-		before = "done before it: " + strings.Join(merged, ", ")
+		var done []string
+		for _, r := range merged {
+			done = append(done, r.URL)
+		}
+		before = "done before it: " + strings.Join(done, ", ")
 	}
 	msg := fmt.Sprintf("Task %s: stopped at %s (%s)", id, rest[0].Ref.URL, before)
 	if len(rest) > 1 {

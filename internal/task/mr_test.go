@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -467,5 +468,39 @@ func TestMRStateTransitions(t *testing.T) {
 		if _, err := s.Transition(tk.ID, to, ""); err != nil {
 			t.Fatalf("-> %s: %v", to, err)
 		}
+	}
+}
+
+func TestWorkerReReportReordersOnlyTheMRsItNames(t *testing.T) {
+	s, launch := newStore(t)
+	tk := create(t, s, launch, "reorder")
+	a := ref(t, "https://github.com/o/r/pull/1")
+	l := ref(t, "https://github.com/o/r/pull/2")
+	b := ref(t, "https://github.com/o/r/pull/3")
+	c := ref(t, "https://github.com/o/r/pull/4")
+	order := func(mrs []MR) string {
+		var out []string
+		for _, m := range mrs {
+			out = append(out, strconv.Itoa(m.Ref.Number))
+		}
+		return strings.Join(out, ",")
+	}
+	if _, err := s.AddMR(tk.ID, MRFromWorker, a, c); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.AddMR(tk.ID, MRLinked, l); err != nil {
+		t.Fatal(err)
+	}
+	mrs, err := s.AddMR(tk.ID, MRFromWorker, b, a)
+	if err != nil || order(mrs) != "3,4,2,1" {
+		t.Fatalf("Worker re-report naming B then A: %s %v; want its named MRs in its order in their slots (3,4,2,1)", order(mrs), err)
+	}
+	mrs, err = s.AddMR(tk.ID, MRLinked, a, b)
+	if err != nil || order(mrs) != "3,4,2,1" {
+		t.Fatalf("linking existing MRs reordered: %s %v", order(mrs), err)
+	}
+	mrs, err = s.AddMR(tk.ID, MRFromWorker, l, a, b)
+	if err != nil || order(mrs) != "1,4,2,3" {
+		t.Fatalf("a linked MR named by the Worker kept its slot while the Worker's own followed the report: %s %v", order(mrs), err)
 	}
 }

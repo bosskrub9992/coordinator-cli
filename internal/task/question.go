@@ -4,10 +4,12 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"slices"
 	"strings"
 
 	"github.com/bosskrub9992/coordinator-cli/internal/config"
 	"github.com/bosskrub9992/coordinator-cli/internal/home"
+	"github.com/bosskrub9992/coordinator-cli/internal/mrwatch"
 )
 
 type QuestionSource string
@@ -18,6 +20,8 @@ const (
 )
 
 const AckNote = "acknowledged"
+
+const MergeNote = "settled by coord merge"
 
 var ErrWorkerLive = errors.New("the Task's Worker is live")
 
@@ -136,6 +140,36 @@ func (s *Store) settle(t *Task, note string) (*Event, error) {
 	t.State = to
 	t.StateSince = s.now()
 	return ev, nil
+}
+
+func (s *Store) ResolveAsks(id ID, merged []mrwatch.Ref, note string) (Task, error) {
+	var evs []Event
+	return s.update(id, func(t *Task) error {
+		evs = nil
+		gone := make(map[string]bool, len(merged))
+		for _, r := range merged {
+			gone[mrKey(r)] = true
+		}
+		if _, err := s.UpdateMRFile(id, func(f *MRFile) error {
+			f.Asks = slices.DeleteFunc(f.Asks, func(a Ask) bool {
+				r, err := mrwatch.ParseURL(a.URL)
+				return err == nil && gone[mrKey(r)]
+			})
+			for i := range f.MRs {
+				if gone[mrKey(f.MRs[i].Ref)] {
+					f.MRs[i].CommentsSinceAck = 0
+				}
+			}
+			return nil
+		}); err != nil {
+			return err
+		}
+		ev, err := s.settle(t, note)
+		if ev != nil {
+			evs = append(evs, *ev)
+		}
+		return err
+	}, func(Task) error { return s.appendAll(id, evs) })
 }
 
 func (s *Store) Ack(id ID, note string) (Task, error) {
