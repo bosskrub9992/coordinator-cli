@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/bosskrub9992/coordinator-cli/internal/config"
 	"github.com/bosskrub9992/coordinator-cli/internal/mrwatch"
 	"github.com/bosskrub9992/coordinator-cli/internal/supervise"
 	"github.com/bosskrub9992/coordinator-cli/internal/task"
@@ -64,9 +63,6 @@ func newLandCmd(a *app) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			if t.Class != config.Ship && t.State != task.Reported {
-				return fmt.Errorf("a %s Task lands from reported. %s", t.Class, t.NextHint())
-			}
 			if w.SupervisorLive() {
 				return fmt.Errorf("Task %s's Worker is still running; land it once the Worker has exited", t.ID)
 			}
@@ -83,8 +79,8 @@ func newLandCmd(a *app) *cobra.Command {
 			if len(open) > 0 {
 				return fmt.Errorf("Task %s still has open MRs (%s); a Task lands only when none is open", t.ID, strings.Join(open, ", "))
 			}
-			if !task.CanTransition(t.State, task.Landed) {
-				return fmt.Errorf("Task %s cannot go to landed. %s", t.ID, t.NextHint())
+			if !t.Allows("land") {
+				return fmt.Errorf("Task %s cannot land from here. %s", t.ID, t.NextHint())
 			}
 			kept, err := supervise.ReturnSettled(s, t.ID, treehouse.Client{})
 			if err != nil {

@@ -22,7 +22,7 @@ Out of scope for this plan: Codex and Cursor Harnesses (the adapter seam is buil
 | Start | `coord` launches Claude Code in the current folder, with the Coordinator role at system-prompt level, its own memory in the Home, and a status line that shows the Captain's own status line with a Fleet line under it |
 | One Coordinator | A second `coord` asks `[y/N]` to take over; the old session's `coord` calls are refused afterwards; `coord --continue` resumes the last Coordinator conversation |
 | Restart | A new Coordinator rebuilds the Fleet from the Home and live processes; a SessionStart hook hands it the Fleet, and its first reply opens with a recap |
-| Workers | Start in the Launch folder by default (overridable per Project or Task), with leased worktrees attached and their `CLAUDE.md` loaded; they write only to their worktrees and their ticket folder |
+| Workers | Start in the Task folder: a folder inside the Launch folder named by `--ticket-folder` or matched by `--ticket`, otherwise one in the Home; leased worktrees attached and their `CLAUDE.md` loaded; they write only to their worktrees and their Task folder |
 | Lookups | The Coordinator does one or two small, predictable calls itself; anything open-ended or large, or in doubt, goes to a `scout` |
 | Autonomy | Free: Briefs, Workers, worktrees, pushing branches, opening MRs/PRs, read-only prod calls (queries, `get_*`/`list_*`). Captain's word: merge, discard or drop, closing an MR, anything destructive, deploys, and any call that changes prod (shown with the exact call) |
 | Permissions | The Coordinator and Workers run in Claude Code's `auto` mode, as the Captain's own sessions do; `coord` makes no permission decisions. A Worker's refused call fails at once; it reports `blocked`, the Coordinator brings the Captain the exact call, and the go-ahead returns as a steer |
@@ -141,8 +141,9 @@ The Captain gets a Coordinator that offers only moves coord allows, knows the wa
 - **One source.** The state table holds each state's moves (command, when, Task class, whose question). The Coordinator role's states section is generated from it; `coord show` prints `Next:`, `coord status` a `NEXT` column, and refusals name the moves.
 - **Role.** "Knowing coord" (check `--help` before claiming; never spend a Worker learning coord) and "Where Workers work" (worktrees, Task folder choice, multi-repo).
 - **SessionStart hook.** `coord _session-start` hands the Coordinator the Fleet at start, resume, clear and compaction.
-- **`coord merge <task> [--mr <url>]... [--method merge|squash|rebase]`.** `gh pr merge`/`glab mr merge` in linked order, the method from `--method`, else the only one a GitHub repo allows, else the GitLab project's own; no branch deletion, admin or auto-merge; reads each MR's state afterwards and settles the Task as the watcher would.
+- **`coord merge <task> [--mr <url>]... [--method merge|squash|rebase]`.** `gh pr merge`/`glab mr merge` of the Worker's open MRs in linked order (linked MRs only when named with `--mr`), the method from `--method`, else the only one a GitHub repo allows, else the GitLab project's own; never asks for branch deletion, admin override or auto-merge; stops at the first MR that fails or is not confirmed merged; clears only the merged MRs' facts and settles the Task as the watcher would.
 - **Landing scouts.** `coord land` accepts a `scout` or `review-code` Task in `reported`.
+- **Steering on MR facts.** `coord steer` on a Task holding the watcher's facts acknowledges them first, so fixed comments do not come back as a question.
 - **Left to try.** An e2e run with a live Coordinator in the e2e rig, and a real `glab mr merge`.
 
 ## Risks

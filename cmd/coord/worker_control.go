@@ -55,6 +55,11 @@ func newSteerCmd(a *app) *cobra.Command {
 			if w.SessionID == "" {
 				return fmt.Errorf("Task %s has no Worker session", t.ID)
 			}
+			if t.State == task.NeedsDecision && t.QuestionFrom == task.QuestionFromWatcher && !w.SupervisorLive() {
+				if _, err := s.Ack(t.ID, "MR facts handed to the Worker with a steer"); err != nil {
+					return err
+				}
+			}
 			m, err := supervise.Post(s, t.ID, supervise.InboxSteer, text)
 			if err != nil {
 				return err

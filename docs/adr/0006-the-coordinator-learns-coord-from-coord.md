@@ -7,11 +7,11 @@ So coord teaches the Coordinator, from one source. The state table in `internal/
 - prints a Task's moves as `Next:` in `coord show` and as `NEXT` in `coord status`;
 - names them when it refuses a command.
 
-A test keeps the table and coord's own refusals in step: a state offers `land` only if it can go to `landed`. The hand-written role adds what a table cannot hold: where Workers work and how the Task folder is chosen, and the rule to check `coord <command> --help` before telling the Captain what coord can or cannot do, never spending a Worker to find out.
+`coord land` and `coord merge` accept a Task only when its moves list them, so the table and coord's refusals cannot disagree there. The hand-written role adds what a table cannot hold: where Workers work and how the Task folder is chosen, and the rule to check `coord <command> --help` before telling the Captain what coord can or cannot do, never spending a Worker to find out.
 
 A SessionStart hook (`coord _session-start`) gives the Coordinator the Fleet, unread events included, whenever its session starts, resumes, clears or compacts, and asks it to open its first reply with a recap. The recap no longer depends on the Coordinator remembering to run `coord status`.
 
-Merging is mechanics, like closing an MR on `coord drop --close-mr`, so it moves into coord: `coord merge <task>` merges a ship Task's open MRs in the order they were linked, stops at the first failure, never deletes a branch, never uses admin or auto-merge, reads each MR's real state afterwards, and settles the Task as the watcher would. Whether to merge stays the Captain's word, carried by the role. Workers name their MRs in merge order with `coord report --mr`.
+Merging is mechanics, like closing an MR on `coord drop --close-mr`, so it moves into coord: `coord merge <task>` merges the open MRs a ship Task's Worker reported, in the order it last named them (a linked MR, such as a deploy-config MR, only when named with `--mr`), stops at the first MR that fails or is not confirmed merged, never asks for branch deletion, admin override or auto-merge, clears only the merged MRs' watcher facts, and settles the Task as the watcher would. Whether to merge stays the Captain's word, carried by the role. Workers name their MRs in merge order with `coord report --mr`.
 
 A scout or review-code Task lands from `reported` once the Coordinator has given the Captain its Report, with no word needed, so finished scouts leave the board. Landed now means "finished": a ship Task's SOP is done, or a Report has reached the Captain.
 

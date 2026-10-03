@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/bosskrub9992/coordinator-cli/internal/config"
 	"github.com/bosskrub9992/coordinator-cli/internal/home"
 	"github.com/bosskrub9992/coordinator-cli/internal/mrwatch"
 	"github.com/bosskrub9992/coordinator-cli/internal/task"
@@ -241,6 +242,9 @@ func TestAddProjectAndResume(t *testing.T) {
 		t.Fatalf("re-reported MR duplicated: %+v", mrs)
 	}
 	r.setMRs(id, mrwatch.Merged)
+	if _, err := r.store().Settle(id, ""); err != nil {
+		t.Fatal(err)
+	}
 	out = r.run("land", string(id))
 	if !strings.Contains(out, "is landed") || !strings.Contains(out, "kept "+wt2+" (second): it has uncommitted changes") {
 		t.Fatalf("land with a dirty worktree: %q", out)
@@ -465,4 +469,65 @@ func eventsOfType(t *testing.T, s *task.Store, id task.ID, typ task.EventType) [
 		}
 	}
 	return out
+}
+
+func TestSteerOnWatcherFactsAcknowledgesThem(t *testing.T) {
+	r := newWorkerRig(t, true)
+	mr1 := mrFor(r.origin, 1)
+	id := r.newTask("ship", "Review fixes", "REPORT done --mr "+mr1+" up")
+	r.run("spawn", string(id))
+	r.waitState(id, task.WaitingReview)
+	r.waitIdle(id)
+	s := r.store()
+	if _, err := s.UpdateMRFile(id, func(f *task.MRFile) error {
+		f.AddAsk(task.Ask{URL: mr1, Kind: "mr-comments", Text: "2 new comments on " + mr1})
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Settle(id, ""); err != nil {
+		t.Fatal(err)
+	}
+	if r.state(id) != task.NeedsDecision {
+		t.Fatalf("state %s", r.state(id))
+	}
+	r.run("steer", string(id), "REPORT done --mr "+mr1+" fixed")
+	r.waitEvent(id, task.EventReport, 2)
+	r.waitState(id, task.WaitingReview)
+	r.waitIdle(id)
+	if f, err := s.ReadMRFile(id); err != nil || len(f.Asks) != 0 {
+		t.Fatalf("asks after the steer %+v %v", f.Asks, err)
+	}
+}
+
+func TestLandFollowsTheStateTable(t *testing.T) {
+	f := newFleet(t)
+	captainTTY(t, true)
+	scout, err := f.store.Create(task.NewTask{Title: "look", Class: config.Scout, Projects: []string{"p"}, Brief: "b", LaunchFolder: absPath("/launch")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, st := range []task.State{task.Running, task.Failed} {
+		if _, err := f.store.Transition(scout.ID, st, ""); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := coord(t, "", "land", string(scout.ID)); err == nil || !strings.Contains(err.Error(), "cannot land from here") || !strings.Contains(err.Error(), "`coord steer "+string(scout.ID)+" <message>`") {
+		t.Fatalf("land a failed scout: %v", err)
+	}
+	for _, st := range []task.State{task.Running, task.Reported} {
+		if _, err := f.store.Transition(scout.ID, st, ""); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if out, err := coord(t, "", "status"); err != nil || !strings.Contains(out, "NEXT") || !strings.Contains(out, "land, steer, drop") {
+		t.Fatalf("status: %q %v", out, err)
+	}
+	if out, err := coord(t, "", "land", string(scout.ID)); err != nil || !strings.Contains(out, "is landed") {
+		t.Fatalf("land a reported scout: %q %v", out, err)
+	}
+	ship := f.task(t, "ship", task.Running, task.Failed)
+	if _, err := coord(t, "", "land", string(ship)); err == nil || !strings.Contains(err.Error(), "cannot land from here") {
+		t.Fatalf("land a failed ship Task: %v", err)
+	}
 }

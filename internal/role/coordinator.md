@@ -40,7 +40,7 @@ coord watches every open MR and reports facts only. A closed MR, red CI, new com
 - When a `coord wait` notification arrives, Read its output file (one notification can carry several events; handle each), re-arm `coord wait` in the background, and only then write your update to the Captain.
 - A `fleet unsupervised` event means you ended a turn with Tasks in flight and no `coord wait` armed; arm it now.
 - `worker-exited` with reason `supervisor-lost` means the Worker died unsupervised and the Task is `failed`; tell the Captain and resume it with `coord steer`.
-- coord gives you the Fleet at the start of each session. Your first reply to the Captain, whatever they asked, opens with a short recap of the Tasks in flight and what each needs from them, and you arm `coord wait` if any is in flight.
+- coord gives you the Fleet at the start of each session. Except after compaction, your first reply to the Captain, whatever they asked, opens with a short recap of the Tasks in flight and what each needs from them, and you arm `coord wait` if any is in flight.
 - If `coord` fails, tell the Captain the exact error. Never substitute subagents and never do the step yourself.
 
 ## Reporting

@@ -59,10 +59,15 @@ var DropMove = Move{Command: "coord drop <task>", When: "on the Captain's word; 
 
 var (
 	followUp  = Move{Command: "coord steer <task> <message>", When: "a follow-up; resumes the same Worker session"}
-	mergeMove = Move{Command: "coord merge <task>", When: "on the Captain's word; merges the open MRs in linked order", Classes: ship}
-	addMR     = Move{Command: "coord task add-mr <task> <url>", When: "link another MR, such as a CI-opened deploy-config MR", Classes: ship}
-	landShip  = Move{Command: "coord land <task>", When: "once the SOP is finished (for example: deployed and post-checked)", Classes: ship}
+	mergeMove = Move{Command: "coord merge <task>", When: "on the Captain's word; merges the Worker's open MRs in order, `--mr` names others"}
+	addMR     = Move{Command: "coord task add-mr <task> <url>", When: "link another MR, such as a CI-opened deploy-config MR"}
+	landShip  = Move{Command: "coord land <task>", When: "once the SOP is finished (for example: deployed and post-checked)"}
 )
+
+func shipOnly(m Move, from QuestionSource) Move {
+	m.Classes, m.From = ship, from
+	return m
+}
 
 var stateTable = []StateInfo{
 	{Queued, "Task and Brief exist; no Worker has started yet", []State{Running, Dropped, Failed}, false, []Move{
@@ -76,11 +81,11 @@ var stateTable = []StateInfo{
 	{Blocked, "the Worker cannot go on until the Coordinator answers or an outside wait ends (usage-limit reset, another Task)", []State{Running, NeedsDecision, Failed, Dropped}, false, []Move{
 		{Command: "coord steer <task> <answer>", When: "answer it; a refused call needs the Captain's go-ahead, a usage limit its reset"},
 	}},
-	{NeedsDecision, "the Worker asked for the Captain's word (a product decision, a Plan, a merge or a discard), or the watcher raised MR facts", []State{Running, Blocked, WaitingReview, Merged, Reported, Landed, Failed, Dropped}, false, []Move{
+	{NeedsDecision, "the Worker asked for the Captain's word (a product decision, a Plan or a discard), or the watcher raised MR facts", []State{Running, Blocked, WaitingReview, Merged, Reported, Landed, Failed, Dropped}, false, []Move{
 		{Command: "coord steer <task> <answer>", When: "answer the question or approve the Plan", From: QuestionFromWorker},
-		{Command: "coord steer <task> <message>", When: "resume the Worker for the fixes the Captain agreed to", From: QuestionFromWatcher},
+		{Command: "coord steer <task> <message>", When: "resume the Worker for the fixes the Captain agreed to; this also acknowledges the facts", From: QuestionFromWatcher},
 		{Command: "coord ack <task>", When: "the facts are handled without the Worker", From: QuestionFromWatcher},
-		{Command: mergeMove.Command, When: mergeMove.When, Classes: ship, From: QuestionFromWatcher},
+		shipOnly(mergeMove, QuestionFromWatcher),
 	}},
 	{WaitingReview, "a ship Task's MRs are up; the Worker has exited and the watcher polls them", []State{Running, NeedsDecision, Merged, Reported, Landed, Failed, Dropped}, false, []Move{
 		mergeMove,
@@ -94,9 +99,9 @@ var stateTable = []StateInfo{
 	}},
 	{Reported, "the Report is written (scout, review-code, or a ship Task with no MR)", []State{Running, NeedsDecision, WaitingReview, Merged, Landed, Failed, Dropped}, false, []Move{
 		{Command: "coord land <task>", When: "in the same turn you give the Captain the Report's outcome; never ask first", Classes: []config.Class{config.Scout, config.ReviewCode}},
-		landShip,
+		shipOnly(landShip, ""),
 		followUp,
-		addMR,
+		shipOnly(addMR, ""),
 	}},
 	{Landed, "finished: a ship Task's SOP is done, or a scout's or review-code's Report has reached the Captain", nil, true, nil},
 	{Dropped, "the Captain ended the Task without it landing", nil, true, nil},
@@ -149,6 +154,10 @@ func (t Task) Moves() []Move {
 		out = append(out, DropMove)
 	}
 	return out
+}
+
+func (t Task) Allows(verb string) bool {
+	return slices.ContainsFunc(t.Moves(), func(m Move) bool { return m.Verb() == verb })
 }
 
 func (t Task) NextHint() string {
