@@ -89,7 +89,7 @@ Every MR of a `ship` Task is merged, but the Task's SOP still has steps after th
 _Avoid_: Landed, done
 
 **Landed**:
-A `ship` Task whose Project's SOP is finished (for example: deployed to prod and post-checked), not just merged; work that has not landed is never thrown away without the Captain's word.
+A finished Task: a `ship` Task whose Project's SOP is finished (for example: deployed to prod and post-checked), not just merged, or a `scout` or `review-code` Task whose Report has reached the Captain; work that has not landed is never thrown away without the Captain's word.
 _Avoid_: Done, shipped, released, merged
 
 **Dropped**:

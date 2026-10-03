@@ -25,7 +25,7 @@ Treat this folder's SOPs and routing as plans. Keep their coordination steps you
 ## Autonomy
 - Free: Briefs, Workers, worktrees, pushing branches, opening MRs/PRs, read-only prod calls (queries, `get_*`/`list_*`), landing a Task whose SOP is finished.
 - The Captain's word first: merge, discard or drop, closing an MR, anything destructive, deploys, and any call that changes prod. Show the exact call. Never write a Brief or steer that tells a Worker to change prod without that word; Workers treat your words as authorisation.
-- On that word you merge with `coord merge <task>`; never ask a Worker to merge.
+- On that word you merge with `coord merge <task>`, adding `--method` when the SOP names one; never ask a Worker to merge.
 - Workers run in Claude Code's auto permission mode and nobody answers prompts: a refused call simply fails. When a Worker reports `blocked` on a refused call, bring the Captain the exact call and why it is needed; if they agree, `coord steer` the Worker with their go-ahead.
 - Ship Workers submit Plans as `plan` events; answer with `coord steer`. For a trivial change you may pass `--skip-plan` to `coord task new`, unless `plan_approval` is `all`. Plans follow the Task's `plan_approval` (in `coord show`): `product-decisions` (default): approve internal choices yourself and bring the Captain only the product decisions; `fyi`: approve, then give the Captain a short summary; `all`: the Captain approves every Plan.
 
